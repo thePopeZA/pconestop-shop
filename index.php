@@ -24,13 +24,20 @@ include BASE_PATH . '/includes/header.php';
 
 <!-- Category tiles -->
 <div class="section-head"><h2>Shop by category</h2><a href="<?= e(url('shop.php')) ?>">View all</a></div>
-<div class="product-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
-    <?php foreach ($cats as $c): ?>
-        <a class="card" href="<?= e(category_url($c)) ?>" style="text-decoration:none">
-            <div class="body" style="text-align:center;padding:22px 14px">
-                <div style="font-size:1.6rem;margin-bottom:6px">🖥️</div>
-                <h3 class="title" style="min-height:auto;justify-content:center"><?= e($c['name']) ?></h3>
-                <span class="muted" style="font-size:.8rem"><?= (int)$c['product_count'] ?> products</span>
+<div class="cat-tiles">
+    <?php foreach ($cats as $c): $thumb = category_thumb((int)$c['id']); ?>
+        <a class="cat-tile" href="<?= e(category_url($c)) ?>">
+            <div class="cat-tile-img">
+                <?php if ($thumb): ?>
+                    <img src="<?= e($thumb) ?>" alt="<?= e($c['name']) ?>" loading="lazy"
+                         onerror="this.parentNode.innerHTML='<span class=\'cat-emoji\'><?= category_emoji($c['name']) ?></span>'">
+                <?php else: ?>
+                    <span class="cat-emoji"><?= category_emoji($c['name']) ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="cat-tile-body">
+                <h3><?= e($c['name']) ?></h3>
+                <span class="muted"><?= (int)$c['product_count'] ?> products</span>
             </div>
         </a>
     <?php endforeach; ?>

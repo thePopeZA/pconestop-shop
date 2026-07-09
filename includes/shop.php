@@ -63,6 +63,41 @@ function child_categories(int $parentId): array
     return $stmt->fetchAll();
 }
 
+/** A representative product image for a category (incl. descendants). */
+function category_thumb(int $catId): ?string
+{
+    $ids = descendant_category_ids($catId);
+    $in = implode(',', array_map('intval', $ids));
+    $row = db()->query(
+        "SELECT image_url FROM products
+         WHERE category_id IN ($in) AND active = 1 AND stock_qty > 0
+           AND image_url IS NOT NULL AND image_url <> ''
+         ORDER BY featured DESC, stock_qty DESC LIMIT 1"
+    )->fetch();
+    return $row ? $row['image_url'] : null;
+}
+
+/** Emoji fallback keyed by category name (best-effort match). */
+function category_emoji(string $name): string
+{
+    $n = strtolower($name);
+    $map = [
+        'peripheral' => '⌨️', 'component' => '🧩', 'cable' => '🔌', 'network' => '📡',
+        'security' => '🔐', 'appliance' => '🔌', 'lifestyle' => '🏠', 'home' => '🏠',
+        'computer' => '💻', 'laptop' => '💻', 'power' => '🔋', 'bag' => '🎒', 'luggage' => '🎒',
+        'tv' => '📺', 'audio' => '🔊', 'sound' => '🔊', 'software' => '💿', 'mobile' => '📱',
+        'phone' => '📱', '3d print' => '🖨️', 'print' => '🖨️', 'storage' => '💾', 'drive' => '💾',
+        'monitor' => '🖥️', 'display' => '🖥️', 'gaming' => '🎮', 'game' => '🎮', 'keyboard' => '⌨️',
+        'mouse' => '🖱️', 'camera' => '📷', 'graphic' => '🎨', 'chassis' => '🖥️', 'cooling' => '❄️',
+    ];
+    foreach ($map as $key => $emoji) {
+        if (str_contains($n, $key)) {
+            return $emoji;
+        }
+    }
+    return '📦';
+}
+
 /** Sidebar top-level list. */
 function sidebar_categories(): array
 {

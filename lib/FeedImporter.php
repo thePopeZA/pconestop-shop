@@ -360,6 +360,11 @@ class FeedImporter
         $this->stats['seen']++;
         $this->seenSkus[$sku] = true;
 
+        // Detect a "delta" row (Syntech's update feed carries only price/stock,
+        // no name/category/brand). We must NOT overwrite the rich fields with blanks.
+        $rawName = $this->pick($rec, 'name', null);
+        $isRich  = is_string($rawName) && trim($rawName) !== '';
+
         $name  = trim((string)$this->pick($rec, 'name', $sku));
         $cost  = $this->parsePrice((string)$this->pick($rec, 'price', '0'));
         $sell  = calc_sell_price($cost);
@@ -421,6 +426,21 @@ class FeedImporter
         $id = $existing->fetchColumn();
 
         if ($id) {
+            if (!$isRich) {
+                // DELTA update: refresh only pricing & stock; keep all descriptive data.
+                $stmt = $this->db->prepare(
+                    'UPDATE products SET cost_price=?, price=?, rrp=COALESCE(?, rrp),
+                     stock_qty=?, stock_status=?, warehouse=?, supplier_eta=?,
+                     active=1, last_feed_seen=NOW()
+                     WHERE id=?'
+                );
+                $stmt->execute([
+                    $cost, $sell, $rrp ?: null, $qty, $stockStatus,
+                    $warehouse ?: null, $eta ?: null, $id,
+                ]);
+                $this->stats['updated']++;
+                return;
+            }
             $stmt = $this->db->prepare(
                 'UPDATE products SET name=?, slug=?, brand=?, category_id=?, category_path=?,
                  description=?, short_desc=?, cost_price=?, price=?, rrp=?, stock_qty=?, stock_status=?,
@@ -437,6 +457,10 @@ class FeedImporter
                 $id,
             ]);
             $this->stats['updated']++;
+        } elseif (!$isRich) {
+            // Delta row for an unknown SKU — skip; the next full sync will add it
+            // with full details rather than creating a nameless placeholder.
+            return;
         } else {
             $stmt = $this->db->prepare(
                 'INSERT INTO products
