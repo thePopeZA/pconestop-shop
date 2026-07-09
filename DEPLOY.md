@@ -18,19 +18,19 @@ Upload `.env.production` and **rename it to `.env`** in the docroot.
 It already has the production DB credentials and `APP_URL=https://shop.pconestop.co.za`.
 > `.env` is git-ignored, so it is never committed — you must place it manually.
 
-## 3. Database
+## 3–4. Database + first import (easy way: the web installer)
 
-1. cPanel → **phpMyAdmin** → select database `pconeurd_pconestop`.
-2. **Import** → choose `database/schema.sql` → Go.
-   (Creates all tables + seed settings.)
-
-## 4. First product import
-
-Run once from cPanel → **Terminal** (or Cron "Run now"):
+Once the files and `.env` are in place, open in your browser:
 ```
-/usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php full
+https://shop.pconestop.co.za/install.php?key=YOUR_ADMIN_SETUP_KEY
 ```
-(Find your exact PHP CLI path in cPanel → *Select PHP Version*.)
+(`YOUR_ADMIN_SETUP_KEY` = the `ADMIN_SETUP_KEY` value in your `.env`.)
+
+Click **“Run full setup”** — it creates all tables and imports the catalogue
+(~30–60s). When products show, **delete `install.php`**.
+
+> Prefer to do it manually? Import `database/schema.sql` via phpMyAdmin, then run
+> `php cron/fetch_feed.php full` from cPanel Terminal.
 
 ## 5. Cron jobs (auto feed refresh)
 
