@@ -261,3 +261,13 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .trust-row { display: flex; gap: 24px; flex-wrap: wrap; margin: 8px 0 0; }
 .trust-row .item { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--ink-soft); }
 .notice { background: var(--amber-tint); color: var(--amber); padding: 10px 14px; border-radius: 8px; font-size: .85rem; font-weight: 600; }
+
+/* ---------- Mobile top bar fix ---------- */
+@media (max-width: 640px) {
+    .topbar { font-size: .74rem; }
+    .topbar .container {
+        flex-direction: column; height: auto; gap: 1px;
+        padding-top: 5px; padding-bottom: 5px; text-align: center;
+    }
+    .topbar .container span { line-height: 1.35; }
+}
