@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "shop",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["-S", "localhost:8080", "-t", "C:\\xampp\\htdocs\\pconestopshop"],
+      "port": 8080
+    }
+  ]
+}

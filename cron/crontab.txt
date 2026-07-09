@@ -1,0 +1,18 @@
+# ============================================================
+#  PC One Stop Shop — cron jobs
+#  Add these in cPanel → Cron Jobs (adjust the PHP path if needed;
+#  cPanel usually provides /usr/local/bin/php or /opt/alt/phpXX/usr/bin/php).
+# ============================================================
+
+# Full catalogue sync every 3 hours (imports new products, deactivates removed ones)
+0 */3 * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php full >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
+
+# Stock & price update every hour on the half-hour
+30 * * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php update >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
+
+# ------------------------------------------------------------
+# Notes:
+#  - Find your PHP CLI path in cPanel → "Select PHP Version" or run `which php` via SSH.
+#  - The update feed is lighter/faster; the full feed rebuilds categories and
+#    removes discontinued products.
+#  - Logs are written to storage/logs/feed.log

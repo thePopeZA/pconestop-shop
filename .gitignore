@@ -1,0 +1,27 @@
+# Secrets & environment
+.env
+.env.*
+!.env.example
+
+# Storage (feeds, logs, cache)
+/storage/feeds/*
+/storage/logs/*
+/storage/cache/*
+!/storage/feeds/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+
+# Dependencies
+/vendor/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+.idea/
+.vscode/
+
+# Local uploads
+/uploads/*
+!/uploads/.gitkeep
