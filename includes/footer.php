@@ -4,11 +4,10 @@
     <div class="container">
         <div class="footer-cols">
             <div>
-                <a class="logo" href="<?= e(url('/')) ?>" style="color:#fff;margin-bottom:12px">
-                    <span class="logo-mark">PC</span>
-                    <span style="color:#fff">One Stop<span class="logo-accent">Shop</span></span>
+                <a class="logo" href="<?= e(url('/')) ?>" style="margin-bottom:14px;display:inline-block">
+                    <img src="<?= e(asset('img/logo.png')) ?>" alt="PC One Stop" style="height:40px;width:auto;filter:brightness(0) invert(1)">
                 </a>
-                <p style="max-width:320px">Your one stop shop for PC hardware, components, peripherals and tech — sourced fresh and shipped across South Africa.</p>
+                <p style="max-width:320px">Your Trusted IT Solutions. PC hardware, components, peripherals and tech — sourced fresh and shipped across South Africa.</p>
             </div>
             <div>
                 <h4>Shop</h4>
@@ -34,7 +33,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <span>&copy; <?= date('Y') ?> PC One Stop Shop. All rights reserved.</span>
+            <span>&copy; <?= date('Y') ?> PC One Stop. All rights reserved.</span>
             <span>Prices incl. VAT · E&amp;OE</span>
         </div>
     </div>

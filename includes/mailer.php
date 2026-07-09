@@ -71,7 +71,7 @@ function render_order_email(array $order, array $items, bool $forAdmin): string
         : '<p>Thanks for your order! We\'ve received your payment and are getting it ready.</p>';
 
     return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#1a2233">'
-        . '<h2 style="color:#1e4fd8">PC One Stop Shop</h2>'
+        . '<h2 style="color:#0f8fbf">PC One Stop</h2>'
         . '<h3>Order ' . e($order['order_number']) . '</h3>'
         . $intro
         . '<table style="width:100%;border-collapse:collapse;margin:16px 0">'

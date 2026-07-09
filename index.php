@@ -11,6 +11,7 @@ $cats = nav_categories(8);
 include BASE_PATH . '/includes/header.php';
 ?>
 <section class="hero">
+    <img class="hero-robot" src="<?= e(asset('img/robot.png')) ?>" alt="" aria-hidden="true">
     <h1>Everything for your PC build &amp; setup — in one place.</h1>
     <p>Thousands of genuine components, peripherals and tech accessories with live stock and fast nationwide delivery.</p>
     <a class="btn btn-accent btn-lg" href="<?= e(url('shop.php')) ?>">Shop all products →</a>

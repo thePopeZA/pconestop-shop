@@ -27,9 +27,8 @@ $activeCat = $activeCat ?? '';
         </div>
     </div>
     <div class="container header-main">
-        <a class="logo" href="<?= e(url('/')) ?>">
-            <span class="logo-mark">PC</span>
-            <span>One Stop<span class="logo-accent">Shop</span></span>
+        <a class="logo" href="<?= e(url('/')) ?>" aria-label="PC One Stop home">
+            <img class="logo-img" src="<?= e(asset('img/logo.png')) ?>" alt="PC One Stop — Your Trusted IT Solutions" width="174" height="46">
         </a>
         <form class="search-form" action="<?= e(url('search.php')) ?>" method="get">
             <input type="text" name="q" placeholder="Search products, brands, SKUs…" value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">

@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="login-wrap">
     <div class="login-card">
-        <div class="brand"><span class="mark">PC</span> One StopShop</div>
+        <div class="brand"><span class="mark">PC</span> One Stop</div>
         <p class="muted" style="color:#5a6478;margin-top:0">
             <?= $needsSetup ? 'Create your admin account to get started.' : 'Sign in to manage your store.' ?>
         </p>

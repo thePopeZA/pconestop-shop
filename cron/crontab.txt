@@ -4,11 +4,11 @@
 #  cPanel usually provides /usr/local/bin/php or /opt/alt/phpXX/usr/bin/php).
 # ============================================================
 
-# Full catalogue sync every 3 hours (imports new products, deactivates removed ones)
-0 */3 * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php full >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
+# Stock & price UPDATE sync every 30 minutes (fast — refreshes stock levels & prices)
+*/30 * * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php update >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
 
-# Stock & price update every hour on the half-hour
-30 * * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php update >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
+# Full catalogue sync twice a day (adds new products, removes discontinued, rebuilds categories)
+15 6,18 * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php full >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
 
 # ------------------------------------------------------------
 # Notes:

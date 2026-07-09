@@ -2,16 +2,19 @@
    PC One Stop Shop — storefront styles
    ============================================================ */
 :root {
-    --bg: #f4f6fb;
+    /* PC One Stop brand palette — scraped from pconestop.co.za
+       blue #22AADD (robot glow / links), purple #3B218E, grey #404040 */
+    --bg: #f4f7f9;
     --surface: #ffffff;
-    --ink: #1a2233;
-    --ink-soft: #5a6478;
-    --line: #e5e9f2;
-    --primary: #1e4fd8;
-    --primary-dark: #163bab;
-    --primary-tint: #eaf0ff;
-    --accent: #ff6a3d;
-    --accent-dark: #e8542a;
+    --ink: #2b2f33;
+    --ink-soft: #6a7075;
+    --line: #e4e8ec;
+    --primary: #0f8fbf;         /* brand blue, darkened for accessible buttons */
+    --primary-dark: #0b7099;
+    --primary-tint: #e7f5fb;
+    --brand-blue: #22aadd;      /* exact brand accent for glows/highlights */
+    --accent: #3b218e;          /* brand purple — main CTAs */
+    --accent-dark: #2c1968;
     --green: #17935b;
     --green-tint: #e4f6ec;
     --amber: #b7791f;
@@ -63,11 +66,12 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .header-main { display: flex; align-items: center; gap: 24px; padding: 14px 0; }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.3rem; color: var(--ink); white-space: nowrap; }
 .logo:hover { text-decoration: none; }
+.logo .logo-img { height: 46px; width: auto; display: block; }
 .logo .logo-mark {
     width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--primary), #3f6bff); color: #fff; font-weight: 800; font-size: 1.1rem;
+    background: linear-gradient(135deg, var(--primary), var(--brand-blue)); color: #fff; font-weight: 800; font-size: 1.1rem;
 }
-.logo .logo-accent { color: var(--accent); }
+.logo .logo-accent { color: var(--brand-blue); }
 .search-form { flex: 1; display: flex; max-width: 620px; }
 .search-form input {
     flex: 1; border: 1px solid var(--line); border-right: none;
@@ -172,10 +176,14 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .pd-desc img { margin: 10px 0; }
 
 /* ---------- Hero ---------- */
-.hero { background: linear-gradient(120deg, #163bab, #1e4fd8 55%, #3f6bff); color: #fff; border-radius: 16px; padding: 40px 44px; margin-bottom: 28px; position: relative; overflow: hidden; }
-.hero h1 { color: #fff; font-size: 2rem; max-width: 560px; }
-.hero p { color: #d9e2ff; max-width: 520px; font-size: 1.05rem; }
-.hero .btn { margin-top: 12px; }
+.hero { background: linear-gradient(120deg, #0b7099, #22aadd 48%, #3b218e); color: #fff; border-radius: 16px; padding: 44px 44px; margin-bottom: 28px; position: relative; overflow: hidden; }
+.hero h1 { color: #fff; font-size: 2rem; max-width: 560px; position: relative; z-index: 2; }
+.hero p { color: #eaf6fc; max-width: 520px; font-size: 1.05rem; position: relative; z-index: 2; }
+.hero .btn { margin-top: 12px; position: relative; z-index: 2; }
+.hero .trust-row { position: relative; z-index: 2; }
+.hero .trust-row .item { color: #eaf6fc; }
+.hero-robot { position: absolute; right: 8px; bottom: -8px; width: 300px; max-width: 40%; pointer-events: none; filter: drop-shadow(0 10px 24px rgba(0,0,0,.25)); z-index: 1; }
+@media (max-width: 860px) { .hero-robot { display: none; } }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 32px 0 16px; }
 .section-head h2 { font-size: 1.4rem; margin: 0; }
 
