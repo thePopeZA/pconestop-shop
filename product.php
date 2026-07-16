@@ -76,6 +76,8 @@ include BASE_PATH . '/includes/header.php';
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="add">
             <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
+            <input type="hidden" name="stay" value="1">
+            <input type="hidden" name="return" value="<?= e($_SERVER['REQUEST_URI'] ?? '') ?>">
             <div class="qty">
                 <button type="button" data-step="-1">−</button>
                 <input type="number" name="qty" value="1" min="1" max="<?= (int)$product['stock_qty'] ?>">

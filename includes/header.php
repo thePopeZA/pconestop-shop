@@ -23,7 +23,7 @@ $activeCat = $activeCat ?? '';
     <div class="topbar">
         <div class="container">
             <span>🇿🇦 Free delivery on orders over <?= money(SHIPPING_FREE_OVER) ?></span>
-            <span><a href="<?= e(url('track.php')) ?>">Track order</a> &nbsp;·&nbsp; <a href="mailto:shop@pconestop.co.za">shop@pconestop.co.za</a></span>
+            <span><a href="<?= e(url('track.php')) ?>">Track order</a> &nbsp;·&nbsp; <a href="mailto:orders@pconestop.co.za">orders@pconestop.co.za</a></span>
         </div>
     </div>
     <div class="container header-main">

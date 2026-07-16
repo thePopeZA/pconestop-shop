@@ -21,9 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 flash('Sorry, that product is not available.', 'error');
             }
-            // If added from a listing, go back there; else show cart
-            $back = $_POST['return'] ?? 'cart.php';
-            redirect($action === 'add' && !empty($_POST['stay']) ? $back : 'cart.php');
+            // Stay on the page the product was added from (same-site paths only)
+            $back = (string)($_POST['return'] ?? '');
+            if (!empty($_POST['stay']) && $back !== '' && $back[0] === '/' && !str_starts_with($back, '//')) {
+                header('Location: ' . $back);
+                exit;
+            }
+            redirect('cart.php');
             break;
 
         case 'update':
@@ -77,6 +81,7 @@ include BASE_PATH . '/includes/header.php';
     <input type="hidden" name="action" value="update">
     <div class="cart-grid">
         <div>
+            <div class="table-scroll">
             <table class="cart-table">
                 <thead>
                     <tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th><th></th></tr>
@@ -108,6 +113,7 @@ include BASE_PATH . '/includes/header.php';
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
             <div style="display:flex;justify-content:space-between;margin-top:14px;gap:10px;flex-wrap:wrap">
                 <a class="btn btn-ghost" href="<?= e(url('shop.php')) ?>">← Continue shopping</a>
                 <button type="submit" class="btn btn-ghost">Update cart</button>

@@ -22,7 +22,7 @@ function send_order_emails(int $orderId): void
     dispatch_mail($order['email'], $customerSubject, $customerBody);
 
     // Shop notification
-    $notify = (string)env('ORDER_NOTIFY_EMAIL', 'shop@pconestop.co.za');
+    $notify = (string)env('ORDER_NOTIFY_EMAIL', 'orders@pconestop.co.za');
     $adminSubject = 'New paid order ' . $order['order_number'] . ' — ' . money((float)$order['total']);
     $adminBody = render_order_email($order, $items, true);
     dispatch_mail($notify, $adminSubject, $adminBody);
@@ -30,7 +30,7 @@ function send_order_emails(int $orderId): void
 
 function dispatch_mail(string $to, string $subject, string $htmlBody): void
 {
-    $from     = (string)env('MAIL_FROM', 'shop@pconestop.co.za');
+    $from     = (string)env('MAIL_FROM', 'orders@pconestop.co.za');
     $fromName = (string)env('MAIL_FROM_NAME', APP_NAME);
     $enabled  = (bool)env('MAIL_ENABLED', false);
 

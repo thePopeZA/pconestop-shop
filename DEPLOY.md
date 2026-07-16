@@ -55,7 +55,7 @@ Visit `https://shop.pconestop.co.za/admin/login.php`. On first run it asks for t
 
 Order emails are **off** (`MAIL_ENABLED=false`) — everything is logged to
 `storage/logs/mail.log` instead. When ready, set `MAIL_ENABLED=true` and fill the
-`MAIL_*` settings (use the cPanel mailbox for `shop@pconestop.co.za`).
+`MAIL_*` settings (use the cPanel mailbox for `orders@pconestop.co.za`).
 
 ## 9. Security checklist
 

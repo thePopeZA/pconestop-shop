@@ -7,7 +7,7 @@ include BASE_PATH . '/includes/header.php';
     <h1>Returns &amp; Warranty</h1>
     <div class="panel">
         <h2>Returns</h2>
-        <p>If something isn't right, contact us at <a href="mailto:shop@pconestop.co.za">shop@pconestop.co.za</a> within 7 days of delivery. Products must be unused and in their original packaging.</p>
+        <p>If something isn't right, contact us at <a href="mailto:orders@pconestop.co.za">orders@pconestop.co.za</a> within 7 days of delivery. Products must be unused and in their original packaging.</p>
         <h2>Warranty</h2>
         <p>All products carry the manufacturer's warranty. Warranty periods vary by product and are listed on the product page where provided by the supplier.</p>
         <h2>Faulty items</h2>

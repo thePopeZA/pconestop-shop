@@ -271,6 +271,8 @@ function render_card(array $p): string
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="add">
                         <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                        <input type="hidden" name="stay" value="1">
+                        <input type="hidden" name="return" value="<?= e($_SERVER['REQUEST_URI'] ?? '') ?>">
                         <button class="btn btn-sm btn-block" type="submit">Add to cart</button>
                     </form>
                 <?php else: ?>

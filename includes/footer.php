@@ -22,7 +22,7 @@
                 <h4>Help</h4>
                 <ul>
                     <li><a href="<?= e(url('track.php')) ?>">Track Order</a></li>
-                    <li><a href="mailto:shop@pconestop.co.za">Contact Us</a></li>
+                    <li><a href="https://pconestop.co.za/contact-us/">Contact Us</a></li>
                     <li><a href="<?= e(url('shipping.php')) ?>">Shipping</a></li>
                     <li><a href="<?= e(url('returns.php')) ?>">Returns</a></li>
                 </ul>

@@ -223,10 +223,14 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .cart-summary .row { display: flex; justify-content: space-between; padding: 7px 0; }
 .cart-summary .total { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 12px; font-size: 1.3rem; font-weight: 800; }
 .cart-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+.cart-grid > * { min-width: 0; }
 @media (max-width: 850px) { .cart-grid { grid-template-columns: 1fr; } }
 
 /* ---------- Forms ---------- */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid > .field { min-width: 0; }
+.field input, .field select, .field textarea { width: 100%; min-width: 0; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
 .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
 .field.full { grid-column: 1 / -1; }
 .field label { font-size: .85rem; font-weight: 600; color: var(--ink); }
@@ -270,4 +274,14 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
         padding-top: 5px; padding-bottom: 5px; text-align: center;
     }
     .topbar .container span { line-height: 1.35; }
+}
+
+/* ---------- Mobile header fix (prevent horizontal overflow) ---------- */
+body { overflow-x: clip; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+    .header-main { flex-wrap: wrap; gap: 12px; padding: 10px 0; }
+    .logo-img { height: 36px; width: auto; }
+    .search-form { order: 3; flex-basis: 100%; max-width: none; }
+    .header-actions { margin-left: auto; }
 }
