@@ -158,5 +158,8 @@ INSERT INTO settings (skey, svalue) VALUES
     ('shipping_flat', '99.00'),
     ('shipping_free_over', '1000.00'),
     ('store_tagline', 'Your one stop shop for PC hardware & tech'),
-    ('commission_rate_pct', '40')
+    ('commission_rate_pct', '40'),
+    ('price_floor_margin_pct', '15'),
+    ('price_cap_margin_pct', '35'),
+    ('price_rrp_nudge_pct', '100')
 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue);

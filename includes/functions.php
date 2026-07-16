@@ -42,9 +42,26 @@ function slugify(string $text): string
     return $text === '' ? 'item' : $text;
 }
 
-/* ---------- Pricing ---------- */
-function calc_sell_price(float $cost): float
+/* ---------- Pricing ----------
+ * RRP-anchored model: target (RRP × nudge), clamped so the ex-VAT margin over
+ * feed cost stays between the floor and cap percentages. Products without an
+ * RRP fall back to classic cost-plus (MARKUP_MULTIPLIER × VAT_MULTIPLIER).
+ * Knobs are admin settings: price_floor_margin_pct, price_cap_margin_pct,
+ * price_rrp_nudge_pct. Re-run a feed sync after changing them.
+ */
+function calc_sell_price(float $cost, ?float $rrpIncl = null): float
 {
+    if ($cost <= 0) {
+        return 0.0;
+    }
+    if ($rrpIncl !== null && $rrpIncl > 0) {
+        $floor = 1 + (float)setting('price_floor_margin_pct', '15') / 100;
+        $cap   = 1 + (float)setting('price_cap_margin_pct', '35') / 100;
+        $nudge = (float)setting('price_rrp_nudge_pct', '100') / 100;
+        $targetEx = ($rrpIncl / VAT_MULTIPLIER) * $nudge;
+        $sellEx = min(max($targetEx, $cost * $floor), $cost * $cap);
+        return round($sellEx * VAT_MULTIPLIER, 2);
+    }
     return round($cost * MARKUP_MULTIPLIER * VAT_MULTIPLIER, 2);
 }
 

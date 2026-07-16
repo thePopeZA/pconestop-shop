@@ -367,8 +367,8 @@ class FeedImporter
 
         $name  = trim((string)$this->pick($rec, 'name', $sku));
         $cost  = $this->parsePrice((string)$this->pick($rec, 'price', '0'));
-        $sell  = calc_sell_price($cost);
         $rrp   = $this->parsePrice((string)$this->pick($rec, 'rrp', '0'));
+        $sell  = calc_sell_price($cost, $rrp ?: null);
         // Brand may appear multiple times (e.g. "Port" and "Port Designs") — keep the fullest
         // brand value, but never let the manufacturer's legal name override a real brand.
         $brand = '';
@@ -421,13 +421,18 @@ class FeedImporter
 
         $slug = slugify($name) . '-' . strtolower($sku);
 
-        $existing = $this->db->prepare('SELECT id FROM products WHERE sku = ? LIMIT 1');
+        $existing = $this->db->prepare('SELECT id, rrp FROM products WHERE sku = ? LIMIT 1');
         $existing->execute([$sku]);
-        $id = $existing->fetchColumn();
+        $existingRow = $existing->fetch();
+        $id = $existingRow['id'] ?? false;
 
         if ($id) {
             if (!$isRich) {
                 // DELTA update: refresh only pricing & stock; keep all descriptive data.
+                // If this delta row carries no RRP, price against the stored one.
+                if (!$rrp && !empty($existingRow['rrp'])) {
+                    $sell = calc_sell_price($cost, (float)$existingRow['rrp']);
+                }
                 $stmt = $this->db->prepare(
                     'UPDATE products SET cost_price=?, price=?, rrp=COALESCE(?, rrp),
                      stock_qty=?, stock_status=?, warehouse=?, supplier_eta=?,
