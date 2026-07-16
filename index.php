@@ -18,7 +18,7 @@ include BASE_PATH . '/includes/header.php';
     <div class="trust-row">
         <span class="item">✓ Live stock levels</span>
         <span class="item">✓ Secure Yoco checkout</span>
-        <span class="item">✓ Free delivery over <?= money(SHIPPING_FREE_OVER) ?></span>
+        <span class="item">✓ Free delivery on larger orders</span>
     </div>
 </section>
 

@@ -65,12 +65,17 @@ function calc_sell_price(float $cost, ?float $rrpIncl = null): float
     return round($cost * MARKUP_MULTIPLIER * VAT_MULTIPLIER, 2);
 }
 
-function calc_shipping(float $subtotal): float
+/**
+ * Courier fee, decided on the order's SUPPLIER COST (ex VAT), not the customer
+ * subtotal: free when Syntech cost > SHIPPING_FREE_COST_OVER, else the flat
+ * courier fee passed on incl VAT.
+ */
+function calc_shipping(float $supplierCostExVat): float
 {
-    if ($subtotal <= 0) {
+    if ($supplierCostExVat <= 0) {
         return 0.0;
     }
-    return $subtotal >= SHIPPING_FREE_OVER ? 0.0 : SHIPPING_FLAT;
+    return $supplierCostExVat > SHIPPING_FREE_COST_OVER ? 0.0 : SHIPPING_FEE_INCL;
 }
 
 /* ---------- Settings ---------- */

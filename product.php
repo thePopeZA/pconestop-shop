@@ -97,7 +97,7 @@ include BASE_PATH . '/includes/header.php';
             <?php if ($product['brand']): ?><div><span class="lbl">Brand</span><span><?= e($product['brand']) ?></span></div><?php endif; ?>
             <?php if ($product['category_path']): ?><div><span class="lbl">Category</span><span><?= e($product['category_path']) ?></span></div><?php endif; ?>
             <?php if ($product['weight_kg'] > 0): ?><div><span class="lbl">Weight</span><span><?= e(rtrim(rtrim(number_format((float)$product['weight_kg'],3),'0'),'.')) ?> kg</span></div><?php endif; ?>
-            <div><span class="lbl">Delivery</span><span>Nationwide · Free over <?= money(SHIPPING_FREE_OVER) ?></span></div>
+            <div><span class="lbl">Delivery</span><span>Nationwide courier · FREE on larger orders</span></div>
         </div>
     </div>
 </div>

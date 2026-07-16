@@ -7,7 +7,7 @@ include BASE_PATH . '/includes/header.php';
     <h1>Shipping &amp; Delivery</h1>
     <div class="panel">
         <h2>Delivery fees</h2>
-        <p>We charge a flat delivery fee of <strong><?= money(SHIPPING_FLAT) ?></strong> per order. Orders over <strong><?= money(SHIPPING_FREE_OVER) ?></strong> qualify for <strong>free delivery</strong>.</p>
+        <p>We deliver nationwide by courier at a flat fee of <strong><?= money(SHIPPING_FEE_INCL) ?></strong> per order (incl. VAT) — passed on at cost. <strong>Larger orders qualify for free delivery</strong>; your cart will show it automatically before you pay.</p>
         <h2>Delivery time</h2>
         <p>Orders are dispatched once payment is confirmed. Delivery typically takes 2–5 business days nationwide, depending on your location and stock availability across our warehouses.</p>
         <h2>Stock &amp; availability</h2>

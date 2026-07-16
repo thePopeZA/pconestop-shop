@@ -60,8 +60,11 @@ define('APP_DEBUG', (bool)env('APP_DEBUG', false));
 define('MARKUP_MULTIPLIER', (float)env('MARKUP_MULTIPLIER', 1.25));
 define('VAT_MULTIPLIER',    (float)env('VAT_MULTIPLIER', 1.15));
 define('VAT_RATE',          (float)env('VAT_RATE', 0.15));
-define('SHIPPING_FLAT',     (float)env('SHIPPING_FLAT', 99.00));
-define('SHIPPING_FREE_OVER',(float)env('SHIPPING_FREE_OVER', 1000.00));
+// Courier: flat fee (ex VAT) passed straight to the customer (charged incl VAT).
+// Free when the order's Syntech cost (ex VAT) exceeds the threshold.
+define('SHIPPING_FEE_EX',          (float)env('SHIPPING_FEE_EX', 180.00));
+define('SHIPPING_FEE_INCL',        round(SHIPPING_FEE_EX * VAT_MULTIPLIER, 2));
+define('SHIPPING_FREE_COST_OVER',  (float)env('SHIPPING_FREE_COST_OVER', 2500.00));
 
 define('YOCO_PUBLIC_KEY', (string)env('YOCO_PUBLIC_KEY', ''));
 define('YOCO_SECRET_KEY', (string)env('YOCO_SECRET_KEY', ''));

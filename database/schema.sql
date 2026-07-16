@@ -155,8 +155,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO settings (skey, svalue) VALUES
     ('markup_multiplier', '1.25'),
     ('vat_multiplier', '1.15'),
-    ('shipping_flat', '99.00'),
-    ('shipping_free_over', '1000.00'),
+    ('shipping_fee_ex', '180.00'),
+    ('shipping_free_cost_over', '2500.00'),
+    ('syntech_rep_name', ''),
+    ('syntech_rep_email', ''),
     ('store_tagline', 'Your one stop shop for PC hardware & tech'),
     ('commission_rate_pct', '40'),
     ('price_floor_margin_pct', '15'),

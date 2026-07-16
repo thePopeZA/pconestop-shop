@@ -124,11 +124,11 @@ include BASE_PATH . '/includes/header.php';
             <h2 style="margin-top:0">Order summary</h2>
             <div class="row"><span>Subtotal (<?= $totals['count'] ?> items)</span><span><?= money($totals['subtotal']) ?></span></div>
             <div class="row">
-                <span>Shipping</span>
-                <span><?= $totals['shipping'] == 0 ? '<strong style="color:var(--green)">FREE</strong>' : money($totals['shipping']) ?></span>
+                <span>Delivery (courier)</span>
+                <span><?= $totals['free_shipping'] ? '<strong style="color:var(--green)">FREE</strong>' : money($totals['shipping']) ?></span>
             </div>
-            <?php if ($totals['shipping'] > 0): ?>
-                <div class="muted" style="font-size:.8rem">Add <?= money(SHIPPING_FREE_OVER - $totals['subtotal']) ?> for free delivery</div>
+            <?php if ($totals['free_shipping']): ?>
+                <div style="font-size:.8rem;color:var(--green);font-weight:600">✓ Your order qualifies for FREE delivery</div>
             <?php endif; ?>
             <div class="row total"><span>Total</span><span><?= money($totals['total']) ?></span></div>
             <div class="muted" style="font-size:.8rem;margin-bottom:14px">Incl. <?= money($totals['vat']) ?> VAT</div>

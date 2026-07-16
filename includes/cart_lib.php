@@ -95,18 +95,21 @@ function cart_items(): array
 function cart_totals(array $items): array
 {
     $subtotal = 0.0;
+    $costTotal = 0.0; // supplier (Syntech) cost ex VAT — decides free shipping
     foreach ($items as $it) {
-        $subtotal += $it['line_total'];
+        $subtotal  += $it['line_total'];
+        $costTotal += (float)$it['product']['cost_price'] * $it['qty'];
     }
-    $shipping = calc_shipping($subtotal);
+    $shipping = calc_shipping($costTotal);
     $total    = $subtotal + $shipping;
     // Prices are VAT-inclusive; VAT portion of the whole order:
     $vat = round($total - ($total / (1 + VAT_RATE)), 2);
     return [
-        'subtotal' => round($subtotal, 2),
-        'shipping' => round($shipping, 2),
-        'total'    => round($total, 2),
-        'vat'      => $vat,
-        'count'    => array_sum(array_map(fn($i) => $i['qty'], $items)),
+        'subtotal'      => round($subtotal, 2),
+        'shipping'      => round($shipping, 2),
+        'free_shipping' => $subtotal > 0 && $shipping == 0.0,
+        'total'         => round($total, 2),
+        'vat'           => $vat,
+        'count'         => array_sum(array_map(fn($i) => $i['qty'], $items)),
     ];
 }

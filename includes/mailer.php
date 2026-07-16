@@ -26,6 +26,91 @@ function send_order_emails(int $orderId): void
     $adminSubject = 'New paid order ' . $order['order_number'] . ' — ' . money((float)$order['total']);
     $adminBody = render_order_email($order, $items, true);
     dispatch_mail($notify, $adminSubject, $adminBody);
+
+    // Supplier purchase order (drop-ship): dealer prices only, never our selling prices.
+    send_supplier_po($order, $items);
+}
+
+/**
+ * Email the paid order to the Syntech sales rep as a purchase order, with a
+ * verification copy to the shop address. Contains ONLY dealer (Syntech) prices
+ * from the order_items cost snapshot — customer pricing never leaves the shop.
+ */
+function send_supplier_po(array $order, array $items): void
+{
+    $repEmail = trim((string)setting('syntech_rep_email', ''));
+    $repName  = trim((string)setting('syntech_rep_name', ''));
+    $notify   = (string)env('ORDER_NOTIFY_EMAIL', 'orders@pconestop.co.za');
+
+    $body = render_supplier_po($order, $items, $repName);
+    $subject = 'Purchase order ' . $order['order_number'] . ' — PC One Stop (drop-ship)';
+
+    if ($repEmail !== '') {
+        dispatch_mail($repEmail, $subject, $body);
+        dispatch_mail($notify, '[COPY sent to ' . $repEmail . '] ' . $subject, $body);
+    } else {
+        dispatch_mail($notify, '[NO REP CONFIGURED — forward manually] ' . $subject, $body);
+    }
+}
+
+function render_supplier_po(array $order, array $items, string $repName): string
+{
+    $rows = '';
+    $dealerTotal = 0.0;
+    foreach ($items as $it) {
+        $unitCost  = (float)($it['cost_price'] ?? 0);
+        $qty       = (int)$it['quantity'];
+        $lineCost  = round($unitCost * $qty, 2);
+        $dealerTotal += $lineCost;
+        $rows .= '<tr>'
+            . '<td style="padding:7px 9px;border-bottom:1px solid #eee;font-family:monospace">' . e($it['sku']) . '</td>'
+            . '<td style="padding:7px 9px;border-bottom:1px solid #eee">' . e($it['name']) . '</td>'
+            . '<td style="padding:7px 9px;border-bottom:1px solid #eee;text-align:center;font-weight:700">' . $qty . '</td>'
+            . '<td style="padding:7px 9px;border-bottom:1px solid #eee;text-align:right">' . money($unitCost) . '</td>'
+            . '<td style="padding:7px 9px;border-bottom:1px solid #eee;text-align:right">' . money($lineCost) . '</td>'
+            . '</tr>';
+    }
+    $addr = implode('<br>', array_filter([
+        e($order['address_line1'] ?? ''),
+        e($order['address_line2'] ?? ''),
+        e(trim(($order['city'] ?? '') . ', ' . ($order['province'] ?? ''))),
+        e($order['postal_code'] ?? ''),
+    ]));
+    $greeting = $repName !== '' ? 'Hi ' . e($repName) . ',' : 'Hi,';
+
+    return '<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a2233">'
+        . '<h2 style="color:#0f8fbf;margin-bottom:4px">PC One Stop — Purchase Order</h2>'
+        . '<h3 style="margin-top:0">' . e($order['order_number']) . ' · ' . e(date('d M Y H:i')) . '</h3>'
+        . '<p>' . $greeting . '<br>Please process and ship the following order directly to our customer.</p>'
+
+        . '<div style="background:#c0392b;color:#ffffff;padding:16px 18px;border-radius:8px;'
+        . 'font-size:17px;font-weight:800;line-height:1.5;margin:16px 0">'
+        . '⚠ DO NOT SEND ANY INVOICE OR PC ONE STOP PAPERWORK TO THE CUSTOMER.<br>'
+        . 'THIS IS A DROP-SHIP ORDER — INVOICE PC ONE STOP ONLY, BY EMAIL TO '
+        . '<span style="text-decoration:underline">orders@pconestop.co.za</span>.'
+        . '</div>'
+
+        . '<div style="border:2px solid #1a2233;border-radius:8px;padding:14px 18px;margin:16px 0">'
+        . '<div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#666">Deliver to</div>'
+        . '<div style="font-size:18px;font-weight:800">' . e($order['customer_name']) . '</div>'
+        . '<div style="font-size:16px;line-height:1.5">' . $addr . '</div>'
+        . ($order['phone'] ? '<div style="margin-top:6px">📞 ' . e($order['phone']) . '</div>' : '')
+        . '</div>'
+
+        . '<table style="width:100%;border-collapse:collapse;margin:16px 0">'
+        . '<thead><tr>'
+        . '<th style="text-align:left;padding:7px 9px;border-bottom:2px solid #ddd">SKU</th>'
+        . '<th style="text-align:left;padding:7px 9px;border-bottom:2px solid #ddd">Product</th>'
+        . '<th style="padding:7px 9px;border-bottom:2px solid #ddd">Qty</th>'
+        . '<th style="text-align:right;padding:7px 9px;border-bottom:2px solid #ddd">Dealer (ex VAT)</th>'
+        . '<th style="text-align:right;padding:7px 9px;border-bottom:2px solid #ddd">Line total</th>'
+        . '</tr></thead>'
+        . '<tbody>' . $rows . '</tbody></table>'
+        . '<p style="text-align:right;font-size:1.05em"><strong>Order total (dealer, ex VAT): ' . money($dealerTotal) . '</strong></p>'
+
+        . '<p style="color:#888;font-size:13px">Reference <strong>' . e($order['order_number'])
+        . '</strong> on all paperwork. Questions: reply to this email or contact orders@pconestop.co.za.</p>'
+        . '</div>';
 }
 
 function dispatch_mail(string $to, string $subject, string $htmlBody): void
@@ -37,6 +122,12 @@ function dispatch_mail(string $to, string $subject, string $htmlBody): void
     if (!$enabled) {
         $line = '[' . date('Y-m-d H:i:s') . "] (SENDING DISABLED) To: $to | Subject: $subject\n";
         @file_put_contents(BASE_PATH . '/storage/logs/mail.log', $line, FILE_APPEND);
+        // Save the full body so emails can be previewed before go-live.
+        $dir = BASE_PATH . '/storage/logs/mail';
+        if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+        $slug = preg_replace('/[^a-z0-9]+/i', '-', substr($subject, 0, 60));
+        @file_put_contents($dir . '/' . date('Ymd-His') . '-' . $slug . '.html',
+            "<!-- To: $to | Subject: $subject -->\n" . $htmlBody);
         return;
     }
 

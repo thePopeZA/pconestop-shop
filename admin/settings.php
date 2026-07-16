@@ -2,8 +2,8 @@
 require_once __DIR__ . '/_bootstrap.php';
 require_admin();
 
-$keys = ['markup_multiplier','vat_multiplier','shipping_flat','shipping_free_over','store_tagline','commission_rate_pct',
-         'price_floor_margin_pct','price_cap_margin_pct','price_rrp_nudge_pct'];
+$keys = ['markup_multiplier','vat_multiplier','shipping_fee_ex','shipping_free_cost_over','store_tagline','commission_rate_pct',
+         'price_floor_margin_pct','price_cap_margin_pct','price_rrp_nudge_pct','syntech_rep_name','syntech_rep_email'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
     $stmt = db()->prepare('INSERT INTO settings (skey, svalue) VALUES (?,?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)');
@@ -56,12 +56,25 @@ include __DIR__ . '/_header.php';
             <input name="vat_multiplier" value="<?= e($vals['vat_multiplier'] ?? '1.15') ?>">
         </div>
         <div class="field">
-            <label>Flat shipping (R)</label>
-            <input name="shipping_flat" value="<?= e($vals['shipping_flat'] ?? '99.00') ?>">
+            <label>Courier fee ex VAT (R)</label>
+            <input name="shipping_fee_ex" value="<?= e($vals['shipping_fee_ex'] ?? '180.00') ?>">
+            <small class="muted">Passed straight to the customer incl VAT (<?= money(SHIPPING_FEE_INCL) ?> at current .env value).</small>
         </div>
         <div class="field">
-            <label>Free shipping over (R)</label>
-            <input name="shipping_free_over" value="<?= e($vals['shipping_free_over'] ?? '1000.00') ?>">
+            <label>Free delivery when Syntech cost over (R, ex VAT)</label>
+            <input name="shipping_free_cost_over" value="<?= e($vals['shipping_free_cost_over'] ?? '2500.00') ?>">
+            <small class="muted">Based on OUR supplier cost of the order, not what the customer pays.</small>
+        </div>
+        <h3 style="margin:18px 0 4px">Syntech sales rep</h3>
+        <p class="muted" style="font-size:.85rem;margin-top:0">Paid orders are emailed to this person as a purchase order (dealer prices only, never our selling prices). A copy always goes to <?= e((string)env('ORDER_NOTIFY_EMAIL', 'orders@pconestop.co.za')) ?>.</p>
+        <div class="field">
+            <label>Rep name</label>
+            <input name="syntech_rep_name" value="<?= e($vals['syntech_rep_name'] ?? '') ?>">
+        </div>
+        <div class="field">
+            <label>Rep email</label>
+            <input name="syntech_rep_email" value="<?= e($vals['syntech_rep_email'] ?? '') ?>">
+            <small class="muted">If empty, the purchase order goes to the shop address only, flagged NO REP CONFIGURED.</small>
         </div>
         <div class="field">
             <label>Store tagline</label>
