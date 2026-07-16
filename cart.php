@@ -94,7 +94,7 @@ include BASE_PATH . '/includes/header.php';
                                 <img src="<?= e(product_image($p['image_url'])) ?>" alt=""
                                      onerror="this.onerror=null;this.src='<?= e(asset('img/placeholder.svg')) ?>'">
                                 <div>
-                                    <a href="<?= e(product_url($p)) ?>" style="font-weight:600;color:var(--ink)"><?= e($p['name']) ?></a>
+                                    <a class="name" href="<?= e(product_url($p)) ?>" style="font-weight:600;color:var(--ink)"><?= e($p['name']) ?></a>
                                     <div class="muted" style="font-size:.8rem">SKU: <?= e($p['sku']) ?></div>
                                     <?php if ($it['capped']): ?><div style="color:var(--amber);font-size:.78rem">Only <?= (int)$p['stock_qty'] ?> in stock</div><?php endif; ?>
                                 </div>

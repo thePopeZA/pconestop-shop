@@ -22,7 +22,7 @@ $activeCat = $activeCat ?? '';
 <header class="site-header">
     <div class="topbar">
         <div class="container">
-            <span>🇿🇦 Free delivery on orders over <?= money(SHIPPING_FREE_OVER) ?></span>
+            <span><img src="<?= e(asset('img/flag-za.svg')) ?>" alt="South Africa" style="height:12px;width:18px;vertical-align:-1px;border-radius:2px"> Free delivery on orders over <?= money(SHIPPING_FREE_OVER) ?></span>
             <span><a href="<?= e(url('track.php')) ?>">Track order</a> &nbsp;·&nbsp; <a href="mailto:orders@pconestop.co.za">orders@pconestop.co.za</a></span>
         </div>
     </div>
