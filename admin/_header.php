@@ -7,6 +7,7 @@ $nav = [
     'dashboard' => ['index.php', '📊 Dashboard'],
     'products'  => ['products.php', '📦 Products'],
     'orders'    => ['orders.php', '🧾 Orders'],
+    'profit'    => ['profit.php', '💰 Profit split'],
     'feeds'     => ['feeds.php', '🔄 Feed sync'],
     'settings'  => ['settings.php', '⚙️ Settings'],
 ];

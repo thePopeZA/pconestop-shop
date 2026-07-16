@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     sku         VARCHAR(100) NOT NULL,
     name        VARCHAR(300) NOT NULL,
     unit_price  DECIMAL(12,2) NOT NULL,
+    cost_price  DECIMAL(12,2) NOT NULL DEFAULT 0.00,  -- feed dealer cost (ex VAT) snapshotted at sale time
     quantity    INT NOT NULL DEFAULT 1,
     line_total  DECIMAL(12,2) NOT NULL,
     PRIMARY KEY (id),
@@ -156,5 +157,6 @@ INSERT INTO settings (skey, svalue) VALUES
     ('vat_multiplier', '1.15'),
     ('shipping_flat', '99.00'),
     ('shipping_free_over', '1000.00'),
-    ('store_tagline', 'Your one stop shop for PC hardware & tech')
+    ('store_tagline', 'Your one stop shop for PC hardware & tech'),
+    ('commission_rate_pct', '40')
 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue);

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/_bootstrap.php';
 require_admin();
 
-$keys = ['markup_multiplier','vat_multiplier','shipping_flat','shipping_free_over','store_tagline'];
+$keys = ['markup_multiplier','vat_multiplier','shipping_flat','shipping_free_over','store_tagline','commission_rate_pct'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
     $stmt = db()->prepare('INSERT INTO settings (skey, svalue) VALUES (?,?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)');
@@ -48,6 +48,11 @@ include __DIR__ . '/_header.php';
         <div class="field">
             <label>Store tagline</label>
             <input name="store_tagline" value="<?= e($vals['store_tagline'] ?? '') ?>">
+        </div>
+        <div class="field">
+            <label>Commission rate (%)</label>
+            <input name="commission_rate_pct" value="<?= e($vals['commission_rate_pct'] ?? '40') ?>">
+            <small class="muted">Your share of profit (ex VAT) on each sale — used by the Profit split report. Owner keeps the rest.</small>
         </div>
         <button class="btn" type="submit">Save settings</button>
     </form>

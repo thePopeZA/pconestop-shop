@@ -37,14 +37,14 @@ function create_order(array $customer, array $items, array $totals): array
         $orderId = (int)$pdo->lastInsertId();
 
         $itemStmt = $pdo->prepare(
-            'INSERT INTO order_items (order_id, product_id, sku, name, unit_price, quantity, line_total)
-             VALUES (?,?,?,?,?,?,?)'
+            'INSERT INTO order_items (order_id, product_id, sku, name, unit_price, cost_price, quantity, line_total)
+             VALUES (?,?,?,?,?,?,?,?)'
         );
         foreach ($items as $it) {
             $p = $it['product'];
             $itemStmt->execute([
                 $orderId, (int)$p['id'], $p['sku'], $p['name'],
-                (float)$p['price'], (int)$it['qty'], (float)$it['line_total'],
+                (float)$p['price'], (float)$p['cost_price'], (int)$it['qty'], (float)$it['line_total'],
             ]);
         }
         $pdo->commit();
