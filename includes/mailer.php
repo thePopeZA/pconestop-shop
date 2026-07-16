@@ -131,14 +131,101 @@ function dispatch_mail(string $to, string $subject, string $htmlBody): void
         return;
     }
 
+    // Authenticated SMTP when MAIL_HOST is configured; otherwise fall back to
+    // PHP mail() (works on shared hosting via the server MTA).
+    $host = (string)env('MAIL_HOST', '');
+    if ($host !== '') {
+        $ok = smtp_send($to, $subject, $htmlBody, $from, $fromName);
+        $line = '[' . date('Y-m-d H:i:s') . '] ' . ($ok ? 'SMTP sent' : 'SMTP FAILED')
+              . " To: $to | Subject: $subject\n";
+        @file_put_contents(BASE_PATH . '/storage/logs/mail.log', $line, FILE_APPEND);
+        return;
+    }
+
     $headers = [
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=UTF-8',
         'From: ' . sprintf('%s <%s>', $fromName, $from),
         'Reply-To: ' . $from,
     ];
-    // On shared hosting PHP mail() routes via the server MTA.
     @mail($to, $subject, $htmlBody, implode("\r\n", $headers));
+}
+
+/**
+ * Minimal SMTP client (no dependencies): implicit TLS on port 465, STARTTLS
+ * otherwise. Credentials from .env MAIL_HOST/MAIL_PORT/MAIL_USER/MAIL_PASS.
+ */
+function smtp_send(string $to, string $subject, string $htmlBody, string $from, string $fromName): bool
+{
+    $host = (string)env('MAIL_HOST', '');
+    $port = (int)env('MAIL_PORT', 587);
+    $user = (string)env('MAIL_USER', '');
+    $pass = (string)env('MAIL_PASS', '');
+
+    $errno = 0; $errstr = '';
+    $remote = ($port === 465 ? 'ssl://' : '') . $host;
+    $fp = @stream_socket_client("$remote:$port", $errno, $errstr, 15);
+    if (!$fp) {
+        return smtp_log_fail("connect: $errstr ($errno)");
+    }
+    stream_set_timeout($fp, 15);
+
+    $read = function () use ($fp): string {
+        $out = '';
+        while (($line = fgets($fp, 1024)) !== false) {
+            $out .= $line;
+            if (isset($line[3]) && $line[3] === ' ') break; // last line of reply
+        }
+        return $out;
+    };
+    $cmd = function (string $c, array $expect) use ($fp, $read): bool {
+        fwrite($fp, $c . "\r\n");
+        $resp = $read();
+        return in_array((int)substr($resp, 0, 3), $expect, true);
+    };
+
+    try {
+        if ((int)substr($read(), 0, 3) !== 220) return smtp_log_fail('no greeting');
+        if (!$cmd('EHLO ' . parse_url(APP_URL, PHP_URL_HOST), [250])) return smtp_log_fail('EHLO');
+        if ($port !== 465) {
+            if (!$cmd('STARTTLS', [220])) return smtp_log_fail('STARTTLS refused');
+            if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                return smtp_log_fail('TLS negotiation');
+            }
+            if (!$cmd('EHLO ' . parse_url(APP_URL, PHP_URL_HOST), [250])) return smtp_log_fail('EHLO/tls');
+        }
+        if ($user !== '') {
+            if (!$cmd('AUTH LOGIN', [334])) return smtp_log_fail('AUTH LOGIN');
+            if (!$cmd(base64_encode($user), [334])) return smtp_log_fail('auth user');
+            if (!$cmd(base64_encode($pass), [235])) return smtp_log_fail('auth pass (check MAIL_USER/MAIL_PASS)');
+        }
+        if (!$cmd("MAIL FROM:<$from>", [250])) return smtp_log_fail('MAIL FROM');
+        if (!$cmd("RCPT TO:<$to>", [250, 251])) return smtp_log_fail("RCPT $to");
+        if (!$cmd('DATA', [354])) return smtp_log_fail('DATA');
+
+        $headers = 'From: ' . sprintf('%s <%s>', $fromName, $from) . "\r\n"
+            . "To: $to\r\n"
+            . 'Subject: =?UTF-8?B?' . base64_encode($subject) . "?=\r\n"
+            . "Reply-To: $from\r\n"
+            . 'Date: ' . date('r') . "\r\n"
+            . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . parse_url(APP_URL, PHP_URL_HOST) . ">\r\n"
+            . "MIME-Version: 1.0\r\n"
+            . "Content-Type: text/html; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: base64\r\n";
+        $body = chunk_split(base64_encode($htmlBody), 76, "\r\n");
+        if (!$cmd($headers . "\r\n" . $body . "\r\n.", [250])) return smtp_log_fail('message rejected');
+        $cmd('QUIT', [221]);
+        return true;
+    } finally {
+        fclose($fp);
+    }
+}
+
+function smtp_log_fail(string $why): bool
+{
+    @file_put_contents(BASE_PATH . '/storage/logs/mail.log',
+        '[' . date('Y-m-d H:i:s') . "] SMTP error: $why\n", FILE_APPEND);
+    return false;
 }
 
 function render_order_email(array $order, array $items, bool $forAdmin): string
