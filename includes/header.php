@@ -16,7 +16,8 @@ $activeCat = $activeCat ?? '';
     <meta name="description" content="<?= e($metaDesc) ?>">
     <link rel="preconnect" href="https://www.syntech.co.za">
     <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
-    <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
+    <link rel="icon" href="<?= e(asset('img/favicon.png')) ?>" type="image/png">
+    <link rel="apple-touch-icon" href="<?= e(asset('img/apple-touch-icon.png')) ?>">
 </head>
 <body>
 <header class="site-header">

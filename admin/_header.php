@@ -18,7 +18,7 @@ $nav = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($adminTitle) ?> — PCOS Admin</title>
 <link rel="stylesheet" href="<?= e(asset('css/admin.css')) ?>">
-<link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>">
+<link rel="icon" href="<?= e(asset('img/favicon.png')) ?>" type="image/png">
 </head>
 <body>
 <div class="admin-shell">
