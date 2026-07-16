@@ -1,50 +1,50 @@
-# Midvaal Gym — Claude Instructions
+# PC One Stop Shop — Claude Instructions
+
+Custom-built PHP e-commerce site for **shop.pconestop.co.za**. No framework, no WooCommerce — plain PHP by design.
 
 ## Stack
-- Laravel 12 · PHP 8.2 · Blade templates · Tailwind CSS 4 · Vite 7
-- MySQL · Laravel queues/jobs · DomPDF for PDFs
-- No React/Vue — server-rendered Blade only
+- PHP 8.2 (XAMPP locally) · MariaDB 10.4 · PDO
+- No framework, no Composer packages — plain PHP with `declare(strict_types=1)`
+- Vanilla JS + CSS in `assets/` — no build step, no JS frameworks
+- Payments: Yoco hosted checkout + webhook
+- Product data: Syntech supplier feed (XML)
 
 ## Project layout
 ```
-app/Http/Controllers/Admin/   → all staff-facing controllers
-app/Http/Controllers/Member/  → member portal controllers
-app/Http/Controllers/         → Auth, Kiosk, Signup, Signing
-app/Services/                 → business logic (PricingService, ArrearsService, etc.)
-resources/views/admin/        → staff UI
-resources/views/member/       → member portal
-resources/views/kiosk*        → front-door kiosk
-resources/views/layouts/      → base layouts
-resources/js/                 → Vite entry points (vanilla JS only)
-database/migrations/          → schema history
-docs/SYSTEM_MAP.md            → full feature inventory with LIVE/DORMANT/PENDING status
+index.php, shop.php, product.php,
+cart.php, checkout*.php, search.php  → public storefront pages
+webhook.php                          → Yoco payment webhook
+admin/                               → staff admin (login, orders, products, feeds, settings)
+includes/                            → shared libs (shop.php, cart_lib.php, orders.php, Yoco.php, mailer.php, functions.php, header/footer)
+lib/FeedImporter.php                 → Syntech feed importer
+cron/fetch_feed.php                  → feed cron entry (`php cron/fetch_feed.php full|update`)
+config/config.php                    → .env loader, app constants, session, error handling
+config/database.php                  → PDO connection
+database/schema.sql                  → full schema
+install.php                          → one-click server installer (DB setup + import)
+storage/                             → logs, cache (gitignored contents)
+DEPLOY.md                            → deployment steps for cPanel
 ```
 
-## Coding rules
-- Always check `docs/SYSTEM_MAP.md` before adding/changing features — it tracks what's LIVE, DORMANT, PENDING
-- Gates: `NOTIFICATIONS_LIVE` (WhatsApp), `IKHOKHA_LIVE` (payments) — never remove these guards
-- Netcash: system NEVER writes to Netcash — imports only, raises staff to-dos
-- Membership types are a fixed set: `single | couple | family | casual` — never expand without explicit instruction
-- Permissions gates: `view-admin`, `manage-records`, `view-financials`, `delete-records`, `override-member-status`, `approve-cancellations`, `manage-users`, `manage-pricing`, `record-payments`
-- Blade only — no JS frameworks, minimal JS, Tailwind utility classes
-- Follow existing controller/service patterns — no new architectural patterns without asking
+## Critical rules
+- **Syntech UPDATE feed is a price/stock-only DELTA** — it has NO name/category/brand/images. `FeedImporter::processRecord` uses an `$isRich` check so delta rows only update price/stock and unknown SKUs are skipped. Never let a delta import overwrite rich fields — this previously wiped product names/categories.
+- **Pricing rule:** sell price = feed dealer price × `MARKUP_MULTIPLIER` (1.25) × `VAT_MULTIPLIER` (1.15). Feed `rrp_incl` is shown as "you save". Never inline different pricing math — use the constants from `config/config.php`.
+- **Shipping:** flat `SHIPPING_FLAT` (R99), free over `SHIPPING_FREE_OVER` (R1000).
+- **Email sending is gated** by `MAIL_ENABLED` in .env — default OFF until owner says go. Never remove the guard.
+- **Secrets live only in gitignored `.env`** (Yoco keys, DB creds, Syntech feed key). Never commit them; `.env.example` documents the shape.
+- Yoco is on TEST keys until go-live.
 
-## Key services
-- `PricingService` — all price calculations, never inline pricing logic
-- `ArrearsService` — owing classification
-- `MembershipStateService` — freeze/runaway/lifecycle
-- `CancellationService` — cancellation engine
+## Coding conventions
+- Follow the existing pattern: procedural pages that `require config/config.php`, shared logic in `includes/`, prepared PDO statements everywhere.
+- Escape all output with the existing `e()` helper; never echo raw user/feed data.
+- Admin pages go through `admin/_bootstrap.php` (auth check) and use `_header.php`/`_footer.php`.
+- Timezone is `Africa/Johannesburg`; currency is ZAR.
+- No new architectural patterns (routers, ORMs, templating engines) without asking.
 
-## Environment flags
-```
-NOTIFICATIONS_LIVE=false   # WhatsApp — default OFF
-IKHOKHA_LIVE=false         # Online payments — default OFF
-```
+## Feed details
+- Full feed: ~2600 products, root `<syntechstock><stock><product>`; fields include sku, price (dealer cost), rrp_incl, promo_price, cpt/jhb/dbn stock, description (CDATA HTML), featured_image, all_images (pipe-separated), categorytree (`A > B|C` — pipe separates memberships, first is primary), brand/manufacturer inside `<attributes>`.
+- Cron: update feed every 30 min, full feed twice daily (see `cron/crontab.txt`).
 
-## Pending work (not yet built — see SYSTEM_MAP.md for detail)
-1. Netcash DO-report import UI + account-holder matching
-2. Scheduler (arrears monthly + notification dispatch daily)
-3. Notification dispatcher + master ON/OFF switch + preview file
-4. Full 8-message notification set with timing rules
-5. Fully-computed billing (auto age-tier updates)
-6. Member pay-history display on Billing tab
+## Deployment
+- Prod: cPanel account `pconeurd`, docroot `/home/pconeurd/shop.pconestop.co.za` — see `DEPLOY.md`.
+- Local: XAMPP, DB `pconestop` (root, no password).
