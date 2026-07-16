@@ -29,7 +29,8 @@ DEPLOY.md                            → deployment steps for cPanel
 ## Critical rules
 - **Syntech UPDATE feed is a price/stock-only DELTA** — it has NO name/category/brand/images. `FeedImporter::processRecord` uses an `$isRich` check so delta rows only update price/stock and unknown SKUs are skipped. Never let a delta import overwrite rich fields — this previously wiped product names/categories.
 - **Pricing rule (RRP-anchored):** sell price targets Syntech's `rrp_incl`, clamped so the ex-VAT margin over feed dealer cost stays between the floor and cap (settings `price_floor_margin_pct` 15 / `price_cap_margin_pct` 35 / `price_rrp_nudge_pct` 100). Products without an RRP fall back to cost × `MARKUP_MULTIPLIER` (1.25) × `VAT_MULTIPLIER` (1.15). All pricing goes through `calc_sell_price()` in `includes/functions.php` — never inline pricing math.
-- **Shipping:** flat `SHIPPING_FLAT` (R99), free over `SHIPPING_FREE_OVER` (R1000).
+- **Shipping:** flat courier `SHIPPING_FEE_EX` (R180 ex VAT) charged to the customer incl VAT (R207); FREE when the order's **Syntech cost ex VAT** exceeds `SHIPPING_FREE_COST_OVER` (R2500). The threshold is on OUR cost — never expose it to customers (messaging stays dynamic: "FREE on larger orders").
+- **Supplier PO email:** on payment, `send_supplier_po()` mails the order to the Syntech rep (settings `syntech_rep_name`/`syntech_rep_email`) with dealer prices only + red do-not-invoice-customer banner; copy to `ORDER_NOTIFY_EMAIL`. Customer sell prices must NEVER appear in supplier emails.
 - **Email sending is gated** by `MAIL_ENABLED` in .env — default OFF until owner says go. Never remove the guard.
 - **Secrets live only in gitignored `.env`** (Yoco keys, DB creds, Syntech feed key). Never commit them; `.env.example` documents the shape.
 - Yoco is on TEST keys until go-live.
