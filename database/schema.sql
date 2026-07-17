@@ -131,6 +131,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
     -- (sees commission & profit split, manages all logins). Only a partner may
     -- edit a partner account's password/role.
     role          ENUM('staff','admin','partner') NOT NULL DEFAULT 'admin',
+    -- Force the user to set their own password on next login (temp/handover accounts).
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login    DATETIME DEFAULT NULL,
     PRIMARY KEY (id),

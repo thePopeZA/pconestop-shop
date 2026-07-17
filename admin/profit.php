@@ -89,8 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
         if (strlen($pass) < 8) {
             flash('Password needs at least 8 characters.', 'error');
         } else {
-            db()->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
+            db()->prepare('UPDATE admin_users SET password_hash = ?, must_change_password = 0 WHERE id = ?')
                 ->execute([password_hash($pass, PASSWORD_DEFAULT), (int)admin_user()['id']]);
+            $_SESSION['admin']['must_change'] = false;
             flash('Your password has been updated.', 'success');
         }
         redirect('admin/profit.php' . $backM);

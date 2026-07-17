@@ -35,8 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
             if ($exists->fetch()) {
                 flash('That username already exists.', 'error');
             } else {
-                admin_create($u, $pass, $mail ?: null, $role);
-                flash('Created login “' . $u . '” (' . role_label($role) . ').', 'success');
+                // New logins get a temporary password and must set their own on first login.
+                admin_create($u, $pass, $mail ?: null, $role, true);
+                flash('Created login “' . $u . '” (' . role_label($role) . '). They will set their own password on first sign-in.', 'success');
             }
         }
         redirect('admin/users.php');
@@ -50,9 +51,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
         } elseif (strlen($pass) < 8) {
             flash('Password needs 8+ characters.', 'error');
         } else {
-            db()->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
-                ->execute([password_hash($pass, PASSWORD_DEFAULT), (int)$target['id']]);
-            flash('Password updated for “' . $target['username'] . '”.', 'success');
+            // Setting your OWN password clears the flag; resetting someone else's
+            // forces them to choose a new one on their next login.
+            $forceChange = (int)$target['id'] === (int)$me['id'] ? 0 : 1;
+            db()->prepare('UPDATE admin_users SET password_hash = ?, must_change_password = ? WHERE id = ?')
+                ->execute([password_hash($pass, PASSWORD_DEFAULT), $forceChange, (int)$target['id']]);
+            if ($forceChange === 0) {
+                $_SESSION['admin']['must_change'] = false;
+            }
+            flash($forceChange
+                ? 'Temporary password set for “' . $target['username'] . '” — they will choose their own on next login.'
+                : 'Your password has been updated.', 'success');
         }
         redirect('admin/users.php');
     }

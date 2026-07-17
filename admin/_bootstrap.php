@@ -37,6 +37,18 @@ function require_admin(): void
     if (!is_admin_logged_in()) {
         redirect('admin/login.php');
     }
+    // Force a password change on first login (or after an admin reset).
+    if (!empty($_SESSION['admin']['must_change'])) {
+        $here = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        if (!in_array($here, ['change_password.php', 'logout.php'], true)) {
+            redirect('admin/change_password.php');
+        }
+    }
+}
+
+function password_change_required(): bool
+{
+    return !empty($_SESSION['admin']['must_change']);
 }
 
 /** Guard partner-only pages (commission / profit split). */
@@ -50,8 +62,8 @@ function require_partner(): void
     }
 }
 
-/** Ensure the admin_users.role column exists & is the 3-value enum (self-migrate). */
-function ensure_admin_role_column(): void
+/** Ensure admin_users has the role enum (3-value) and must_change flag (self-migrate). */
+function ensure_admin_columns(): void
 {
     static $checked = false;
     if ($checked) {
@@ -68,9 +80,20 @@ function ensure_admin_role_column(): void
             db()->exec("ALTER TABLE admin_users
                         MODIFY COLUMN role ENUM('staff','admin','partner') NOT NULL DEFAULT 'admin'");
         }
+        $mc = db()->query("SHOW COLUMNS FROM admin_users LIKE 'must_change_password'")->fetch();
+        if (!$mc) {
+            db()->exec("ALTER TABLE admin_users
+                        ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0 AFTER role");
+        }
     } catch (Throwable $e) {
         // table may not exist yet during first-run setup
     }
+}
+
+/** Back-compat alias. */
+function ensure_admin_role_column(): void
+{
+    ensure_admin_columns();
 }
 
 /** Rank for role hierarchy: staff < admin(owner) < partner(build owner). */
@@ -118,12 +141,17 @@ function admin_count(): int
 
 function admin_login(string $username, string $password): bool
 {
-    ensure_admin_role_column();
+    ensure_admin_columns();
     $stmt = db()->prepare('SELECT * FROM admin_users WHERE username = ? LIMIT 1');
     $stmt->execute([$username]);
     $u = $stmt->fetch();
     if ($u && password_verify($password, $u['password_hash'])) {
-        $session = ['id' => (int)$u['id'], 'username' => $u['username'], 'role' => $u['role'] ?? 'admin'];
+        $session = [
+            'id'          => (int)$u['id'],
+            'username'    => $u['username'],
+            'role'        => $u['role'] ?? 'admin',
+            'must_change' => !empty($u['must_change_password']),
+        ];
         db()->prepare('UPDATE admin_users SET last_login = NOW() WHERE id = ?')->execute([(int)$u['id']]);
         session_regenerate_id(true);
         $_SESSION['admin'] = $session;
@@ -132,12 +160,12 @@ function admin_login(string $username, string $password): bool
     return false;
 }
 
-function admin_create(string $username, string $password, ?string $email = null, string $role = 'admin'): int
+function admin_create(string $username, string $password, ?string $email = null, string $role = 'admin', bool $mustChange = false): int
 {
-    ensure_admin_role_column();
-    $role = $role === 'partner' ? 'partner' : 'admin';
-    $stmt = db()->prepare('INSERT INTO admin_users (username, email, password_hash, role) VALUES (?,?,?,?)');
-    $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $role]);
+    ensure_admin_columns();
+    $role = in_array($role, ['staff', 'admin', 'partner'], true) ? $role : 'admin';
+    $stmt = db()->prepare('INSERT INTO admin_users (username, email, password_hash, role, must_change_password) VALUES (?,?,?,?,?)');
+    $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $role, $mustChange ? 1 : 0]);
     return (int)db()->lastInsertId();
 }
 

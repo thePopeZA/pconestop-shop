@@ -33,7 +33,8 @@ $nav['users'] = ['users.php', '👤 Admin users'];
             <?php foreach ($nav as $key => [$href, $label]): ?>
                 <li><a href="<?= e(admin_url($href)) ?>" class="<?= $adminNav === $key ? 'active' : '' ?>"><?= $label ?></a></li>
             <?php endforeach; ?>
-            <li class="sep">Shop</li>
+            <li class="sep">Account</li>
+            <li><a href="<?= e(admin_url('change_password.php')) ?>" class="<?= $adminNav === 'change_password' ? 'active' : '' ?>">🔑 Change password</a></li>
             <li><a href="<?= e(url('/')) ?>" target="_blank">🌐 View store</a></li>
             <li><a href="<?= e(admin_url('logout.php')) ?>">🚪 Log out</a></li>
         </ul>
