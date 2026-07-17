@@ -165,6 +165,8 @@ INSERT INTO settings (skey, svalue) VALUES
     ('syntech_rep_email', ''),
     ('commission_report_name', ''),
     ('commission_report_email', ''),
+    ('owner_report_name', ''),
+    ('owner_report_email', ''),
     ('store_tagline', 'Your one stop shop for PC hardware & tech'),
     ('commission_rate_pct', '40'),
     ('price_floor_margin_pct', '15'),

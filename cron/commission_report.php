@@ -5,9 +5,11 @@
  *   php cron/commission_report.php            # previous month (default)
  *   php cron/commission_report.php 2026-06    # a specific month
  *
- * Emails the partner's commission for the month to the address configured on
- * the admin Profit split page (commission_report_email). Silent no-op if none
- * is set. See cron/crontab.txt.
+ * Emails two monthly reports for the month just ended:
+ *   1. Partner income report  -> commission_report_email
+ *   2. Owner sales & commission statement -> owner_report_email
+ * Both recipients are configured on the admin Profit split page. Each is a
+ * silent no-op if its address is unset. See cron/crontab.txt.
  */
 
 declare(strict_types=1);
@@ -26,6 +28,6 @@ if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ym)) {
     exit(2);
 }
 
-$res = send_commission_report($ym);
-echo '[' . date('Y-m-d H:i:s') . "] commission report $ym: " . json_encode($res) . "\n";
-exit($res['sent'] ? 0 : 0); // no-op (no recipient) is not a failure
+$res = send_monthly_commission_reports($ym);
+echo '[' . date('Y-m-d H:i:s') . "] commission reports $ym: " . json_encode($res) . "\n";
+exit(0); // a missing recipient is a no-op, not a failure

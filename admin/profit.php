@@ -48,7 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
         } else {
             $saveSetting('commission_report_name', $name);
             $saveSetting('commission_report_email', $email);
-            flash($email === '' ? 'Monthly report recipient cleared.' : 'Monthly report will be sent to ' . $email . '.', 'success');
+            flash($email === '' ? 'Monthly report recipient cleared.' : 'Your monthly report will be sent to ' . $email . '.', 'success');
+        }
+        redirect('admin/profit.php' . $backM);
+    }
+
+    if ($action === 'set_owner_recipient') {
+        $name  = trim((string)($_POST['owner_report_name'] ?? ''));
+        $email = trim((string)($_POST['owner_report_email'] ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('That is not a valid email address.', 'error');
+        } else {
+            $saveSetting('owner_report_name', $name);
+            $saveSetting('owner_report_email', $email);
+            flash($email === '' ? 'Owner statement recipient cleared.' : 'Owner statement will be sent to ' . $email . '.', 'success');
         }
         redirect('admin/profit.php' . $backM);
     }
@@ -57,8 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
         $ym = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string)($_POST['m'] ?? '')) ? $_POST['m'] : date('Y-m');
         $res = send_commission_report($ym);
         flash($res['sent']
-            ? 'Commission report for ' . date('F Y', strtotime($ym . '-01')) . ' sent to ' . $res['to'] . '.'
+            ? 'Your commission report for ' . date('F Y', strtotime($ym . '-01')) . ' sent to ' . $res['to'] . '.'
             : 'No recipient set — add your invoice email first.', $res['sent'] ? 'success' : 'error');
+        redirect('admin/profit.php' . $backM);
+    }
+
+    if ($action === 'send_owner_now') {
+        $ym = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string)($_POST['m'] ?? '')) ? $_POST['m'] : date('Y-m');
+        $res = send_owner_statement($ym);
+        flash($res['sent']
+            ? 'Owner statement for ' . date('F Y', strtotime($ym . '-01')) . ' sent to ' . $res['to'] . '.'
+            : 'No owner recipient set — add their email first.', $res['sent'] ? 'success' : 'error');
         redirect('admin/profit.php' . $backM);
     }
 
@@ -148,19 +170,21 @@ include __DIR__ . '/_header.php';
 </div>
 
 <?php
-$reportName  = (string)setting('commission_report_name', '');
-$reportEmail = (string)setting('commission_report_email', '');
+$reportName   = (string)setting('commission_report_name', '');
+$reportEmail  = (string)setting('commission_report_email', '');
+$ownerName    = (string)setting('owner_report_name', '');
+$ownerEmail   = (string)setting('owner_report_email', '');
 ?>
 <div class="panel" style="margin-bottom:20px;border-left:4px solid var(--primary,#0f8fbf)">
-    <h2 style="margin-top:0">Monthly commission invoice</h2>
-    <p class="muted" style="margin-top:0;font-size:.88rem">On the 1st of every month, an invoice with all items sold and your commission is emailed to the address below (for the month just ended). Change the name/email anytime.</p>
+    <h2 style="margin-top:0">My commission report (partner)</h2>
+    <p class="muted" style="margin-top:0;font-size:.88rem">On the 1st of every month, <strong>your</strong> income report (all items sold + your commission) is emailed here for the month just ended. Change the name/email anytime.</p>
     <form method="post" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="set_report_recipient">
         <input type="hidden" name="m" value="<?= e($month) ?>">
         <div class="field" style="margin:0">
             <label>Recipient name</label>
-            <input name="commission_report_name" value="<?= e($reportName) ?>" placeholder="e.g. Wayne" style="max-width:200px">
+            <input name="commission_report_name" value="<?= e($reportName) ?>" placeholder="e.g. Jürgen" style="max-width:200px">
         </div>
         <div class="field" style="margin:0">
             <label>Invoice email</label>
@@ -173,10 +197,40 @@ $reportEmail = (string)setting('commission_report_email', '');
         <input type="hidden" name="action" value="send_report_now">
         <input type="hidden" name="m" value="<?= e($month) ?>">
         <button class="btn btn-sm btn-ghost" type="submit" <?= $reportEmail === '' ? 'disabled title="Set an invoice email first"' : '' ?>>
-            ✉ Send <?= e($monthLabel ?? $month) ?> report now
+            ✉ Send <?= e($monthLabel) ?> report to me now
         </button>
         <span class="muted" style="font-size:.82rem">
             <?= $reportEmail === '' ? 'No recipient set yet.' : 'Currently sending to ' . e($reportEmail) ?>
+        </span>
+    </form>
+</div>
+
+<div class="panel" style="margin-bottom:20px;border-left:4px solid var(--amber,#e08a1e)">
+    <h2 style="margin-top:0">Owner sales &amp; commission statement</h2>
+    <p class="muted" style="margin-top:0;font-size:.88rem">A separate, owner-friendly statement (what sold, gross profit, and the commission they owe you) emailed to the shop owner on the 1st of each month — so their invoice from you makes sense.</p>
+    <form method="post" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="set_owner_recipient">
+        <input type="hidden" name="m" value="<?= e($month) ?>">
+        <div class="field" style="margin:0">
+            <label>Owner name</label>
+            <input name="owner_report_name" value="<?= e($ownerName) ?>" placeholder="e.g. William Holliday" style="max-width:200px">
+        </div>
+        <div class="field" style="margin:0">
+            <label>Owner email</label>
+            <input name="owner_report_email" type="email" value="<?= e($ownerEmail) ?>" placeholder="owner@example.com" style="max-width:260px">
+        </div>
+        <button class="btn" type="submit">Save</button>
+    </form>
+    <form method="post" style="margin-top:12px">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="send_owner_now">
+        <input type="hidden" name="m" value="<?= e($month) ?>">
+        <button class="btn btn-sm btn-ghost" type="submit" <?= $ownerEmail === '' ? 'disabled title="Set the owner email first"' : '' ?>>
+            ✉ Send <?= e($monthLabel) ?> statement to owner now
+        </button>
+        <span class="muted" style="font-size:.82rem">
+            <?= $ownerEmail === '' ? 'No owner recipient set yet.' : 'Currently sending to ' . e($ownerEmail) ?>
         </span>
     </form>
 </div>
