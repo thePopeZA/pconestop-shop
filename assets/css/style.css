@@ -12,6 +12,7 @@
     --primary: #12A15E;         /* green — links/accent text on light backgrounds */
     --primary-dark: #0C7C48;
     --primary-tint: #E4F6ED;
+    --mint: #8FD6B4;            /* mint — accent on dark navy surfaces only */
     --brand-blue: #12A15E;      /* legacy alias, kept green (was blue) */
     --accent: #E8850C;          /* amber — promo/sale badges, matches marketing site */
     --accent-dark: #C36A00;
@@ -192,6 +193,8 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .hero h1 { color: #fff; font-size: 2rem; max-width: 560px; position: relative; z-index: 2; }
 .hero p { color: #B9C9D8; max-width: 520px; font-size: 1.05rem; position: relative; z-index: 2; }
 .hero .btn { margin-top: 12px; position: relative; z-index: 2; }
+.hero .btn-accent { background: #fff; color: var(--ink); }
+.hero .btn-accent:hover { background: var(--mint); color: var(--ink); }
 .hero .trust-row { position: relative; z-index: 2; }
 .hero .trust-row .item { color: #B9C9D8; }
 .hero-robot { position: absolute; right: 8px; bottom: -8px; width: 300px; max-width: 40%; pointer-events: none; filter: drop-shadow(0 10px 24px rgba(0,0,0,.25)); z-index: 1; }
