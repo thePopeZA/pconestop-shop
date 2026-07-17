@@ -10,11 +10,12 @@ $nav = [
     'feeds'     => ['feeds.php', '🔄 Feed sync'],
     'settings'  => ['settings.php', '⚙️ Settings'],
 ];
-// Profit split, commission & user management are partner-only (build owner).
+// Profit split & commission are partner-only (build owner).
 if (is_partner()) {
     $nav['profit'] = ['profit.php', '💰 Profit split'];
-    $nav['users']  = ['users.php', '👤 Admin users'];
 }
+// User management is visible to all — each role manages only what it may.
+$nav['users'] = ['users.php', '👤 Admin users'];
 ?><!doctype html>
 <html lang="en">
 <head>

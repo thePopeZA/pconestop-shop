@@ -10,6 +10,9 @@
 # Full catalogue sync twice a day (adds new products, removes discontinued, rebuilds categories)
 15 6,18 * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/fetch_feed.php full >> /home/pconeurd/shop.pconestop.co.za/storage/logs/feed.log 2>&1
 
+# Partner commission report — 06:00 on the 1st of every month (for the month just ended)
+0 6 1 * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/commission_report.php >> /home/pconeurd/shop.pconestop.co.za/storage/logs/commission.log 2>&1
+
 # ------------------------------------------------------------
 # Notes:
 #  - Find your PHP CLI path in cPanel → "Select PHP Version" or run `which php` via SSH.

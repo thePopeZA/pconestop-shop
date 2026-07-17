@@ -127,8 +127,10 @@ CREATE TABLE IF NOT EXISTS admin_users (
     username      VARCHAR(80) NOT NULL,
     email         VARCHAR(200) DEFAULT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    -- 'admin' = shop staff/owner; 'partner' = build owner, sees commission & profit split
-    role          ENUM('admin','partner') NOT NULL DEFAULT 'admin',
+    -- 'staff' = limited shop worker; 'admin' = shop owner; 'partner' = build owner
+    -- (sees commission & profit split, manages all logins). Only a partner may
+    -- edit a partner account's password/role.
+    role          ENUM('staff','admin','partner') NOT NULL DEFAULT 'admin',
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login    DATETIME DEFAULT NULL,
     PRIMARY KEY (id),
@@ -161,6 +163,8 @@ INSERT INTO settings (skey, svalue) VALUES
     ('shipping_free_cost_over', '2500.00'),
     ('syntech_rep_name', ''),
     ('syntech_rep_email', ''),
+    ('commission_report_name', ''),
+    ('commission_report_email', ''),
     ('store_tagline', 'Your one stop shop for PC hardware & tech'),
     ('commission_rate_pct', '40'),
     ('price_floor_margin_pct', '15'),

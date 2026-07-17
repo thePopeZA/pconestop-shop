@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/_bootstrap.php';
 require_partner(); // build owner only — commission & profit are private to the partner
+require_once BASE_PATH . '/includes/commission.php';
 
 /*
  * Profit split report.
@@ -22,15 +23,56 @@ if (!$hasCol) {
     flash('Added cost snapshot column to order_items and backfilled existing rows.', 'info');
 }
 
-/* Partner updates their own commission rate here (owner never sees this control). */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'set_rate' && csrf_check()) {
-    $newRate = (float)($_POST['commission_rate_pct'] ?? 40);
-    $newRate = max(0, min(100, $newRate));
-    db()->prepare('INSERT INTO settings (skey, svalue) VALUES ("commission_rate_pct", ?)
-                   ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)')
-        ->execute([(string)$newRate]);
-    flash('Commission rate updated to ' . rtrim(rtrim(number_format($newRate, 2), '0'), '.') . '%.', 'success');
-    redirect('admin/profit.php' . (!empty($_POST['m']) ? '?m=' . urlencode((string)$_POST['m']) : ''));
+/* Partner-only POST actions (owner never sees these controls). */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
+    $action = $_POST['action'] ?? '';
+    $backM  = !empty($_POST['m']) ? '?m=' . urlencode((string)$_POST['m']) : '';
+
+    $saveSetting = function (string $key, string $val): void {
+        db()->prepare('INSERT INTO settings (skey, svalue) VALUES (?, ?)
+                       ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)')->execute([$key, $val]);
+    };
+
+    if ($action === 'set_rate') {
+        $newRate = max(0, min(100, (float)($_POST['commission_rate_pct'] ?? 40)));
+        $saveSetting('commission_rate_pct', (string)$newRate);
+        flash('Commission rate updated to ' . rtrim(rtrim(number_format($newRate, 2), '0'), '.') . '%.', 'success');
+        redirect('admin/profit.php' . $backM);
+    }
+
+    if ($action === 'set_report_recipient') {
+        $name  = trim((string)($_POST['commission_report_name'] ?? ''));
+        $email = trim((string)($_POST['commission_report_email'] ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('That is not a valid email address.', 'error');
+        } else {
+            $saveSetting('commission_report_name', $name);
+            $saveSetting('commission_report_email', $email);
+            flash($email === '' ? 'Monthly report recipient cleared.' : 'Monthly report will be sent to ' . $email . '.', 'success');
+        }
+        redirect('admin/profit.php' . $backM);
+    }
+
+    if ($action === 'send_report_now') {
+        $ym = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string)($_POST['m'] ?? '')) ? $_POST['m'] : date('Y-m');
+        $res = send_commission_report($ym);
+        flash($res['sent']
+            ? 'Commission report for ' . date('F Y', strtotime($ym . '-01')) . ' sent to ' . $res['to'] . '.'
+            : 'No recipient set — add your invoice email first.', $res['sent'] ? 'success' : 'error');
+        redirect('admin/profit.php' . $backM);
+    }
+
+    if ($action === 'set_password') {
+        $pass = (string)($_POST['password'] ?? '');
+        if (strlen($pass) < 8) {
+            flash('Password needs at least 8 characters.', 'error');
+        } else {
+            db()->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
+                ->execute([password_hash($pass, PASSWORD_DEFAULT), (int)admin_user()['id']]);
+            flash('Your password has been updated.', 'success');
+        }
+        redirect('admin/profit.php' . $backM);
+    }
 }
 
 $rate = (float)setting('commission_rate_pct', '40') / 100;
@@ -59,20 +101,7 @@ if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
     $month = $months[0]['ym'] ?? date('Y-m');
 }
 
-$detailStmt = db()->prepare(
-    "SELECT oi.sku, oi.name,
-            SUM(oi.quantity)                 AS units,
-            SUM(oi.line_total)               AS revenue_incl,
-            SUM(oi.line_total) / ?           AS revenue_ex,
-            SUM(oi.cost_price * oi.quantity) AS cost_ex
-     FROM orders o
-     JOIN order_items oi ON oi.order_id = o.id
-     WHERE o.payment_status = 'paid' AND DATE_FORMAT(o.created_at, '%Y-%m') = ?
-     GROUP BY oi.sku, oi.name
-     ORDER BY (SUM(oi.line_total) / ? - SUM(oi.cost_price * oi.quantity)) DESC"
-);
-$detailStmt->execute([$vat, $month, $vat]);
-$rows = $detailStmt->fetchAll();
+$rows = commission_month_rows($month);
 
 /* ---- CSV export of the selected month ---- */
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
@@ -115,6 +144,55 @@ include __DIR__ . '/_header.php';
         </div>
         <button class="btn" type="submit">Save rate</button>
         <span class="muted" style="font-size:.85rem">You take <strong><?= round($rate * 100) ?>%</strong> · owner keeps <strong><?= round((1 - $rate) * 100) ?>%</strong></span>
+    </form>
+</div>
+
+<?php
+$reportName  = (string)setting('commission_report_name', '');
+$reportEmail = (string)setting('commission_report_email', '');
+?>
+<div class="panel" style="margin-bottom:20px;border-left:4px solid var(--primary,#0f8fbf)">
+    <h2 style="margin-top:0">Monthly commission invoice</h2>
+    <p class="muted" style="margin-top:0;font-size:.88rem">On the 1st of every month, an invoice with all items sold and your commission is emailed to the address below (for the month just ended). Change the name/email anytime.</p>
+    <form method="post" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="set_report_recipient">
+        <input type="hidden" name="m" value="<?= e($month) ?>">
+        <div class="field" style="margin:0">
+            <label>Recipient name</label>
+            <input name="commission_report_name" value="<?= e($reportName) ?>" placeholder="e.g. Wayne" style="max-width:200px">
+        </div>
+        <div class="field" style="margin:0">
+            <label>Invoice email</label>
+            <input name="commission_report_email" type="email" value="<?= e($reportEmail) ?>" placeholder="you@example.com" style="max-width:260px">
+        </div>
+        <button class="btn" type="submit">Save</button>
+    </form>
+    <form method="post" style="margin-top:12px">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="send_report_now">
+        <input type="hidden" name="m" value="<?= e($month) ?>">
+        <button class="btn btn-sm btn-ghost" type="submit" <?= $reportEmail === '' ? 'disabled title="Set an invoice email first"' : '' ?>>
+            ✉ Send <?= e($monthLabel ?? $month) ?> report now
+        </button>
+        <span class="muted" style="font-size:.82rem">
+            <?= $reportEmail === '' ? 'No recipient set yet.' : 'Currently sending to ' . e($reportEmail) ?>
+        </span>
+    </form>
+</div>
+
+<div class="panel" style="margin-bottom:20px">
+    <h2 style="margin-top:0">Your login</h2>
+    <p class="muted" style="margin-top:0;font-size:.88rem">Change the password for your partner account (<strong><?= e(admin_user()['username']) ?></strong>).</p>
+    <form method="post" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="set_password">
+        <input type="hidden" name="m" value="<?= e($month) ?>">
+        <div class="field" style="margin:0">
+            <label>New password</label>
+            <input name="password" type="password" required minlength="8" placeholder="min 8 characters" style="max-width:220px">
+        </div>
+        <button class="btn" type="submit">Update password</button>
     </form>
 </div>
 
@@ -200,7 +278,7 @@ include __DIR__ . '/_header.php';
     <strong>How this is calculated:</strong> only <em>paid</em> orders count. Per item:
     sell price ex VAT (sold price ÷ <?= e((string)$vat) ?>) minus the Syntech feed cost at the moment of sale
     (snapshotted, so later feed price changes never affect old months). Shipping fees are excluded.
-    Commission rate is set in <a href="<?= e(admin_url('settings.php')) ?>">Settings</a> (currently <?= round($rate * 100) ?>%).
+    Commission rate (currently <?= round($rate * 100) ?>%) is set above and is private to your partner login.
 </div>
 
 <?php include __DIR__ . '/_footer.php'; ?>

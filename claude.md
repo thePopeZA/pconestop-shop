@@ -39,7 +39,8 @@ DEPLOY.md                            → deployment steps for cPanel
 - Follow the existing pattern: procedural pages that `require config/config.php`, shared logic in `includes/`, prepared PDO statements everywhere.
 - Escape all output with the existing `e()` helper; never echo raw user/feed data.
 - Admin pages go through `admin/_bootstrap.php` (auth check) and use `_header.php`/`_footer.php`.
-- **Admin roles:** `admin_users.role` is `admin` (shop staff/owner) or `partner` (build owner). Partner-only pages call `require_partner()`: Profit split, commission rate, and Admin users. The commission rate is set ONLY on the partner Profit split page — never expose it to the shop owner. Manage logins/roles via `admin/users.php` (partner-only).
+- **Admin roles:** `admin_users.role` is `staff` < `admin` (shop owner) < `partner` (build owner). `require_partner()` guards Profit split & commission. User management (`admin/users.php`) is open to all but enforces `can_manage_account()`: only a partner may edit a partner account; an owner may manage staff + self; staff manage only themselves; only a partner changes roles. Commission rate, the monthly commission-invoice recipient, and the partner's own password all live on the partner-only Profit split page — never expose commission to the owner.
+- **Monthly commission invoice:** `cron/commission_report.php` (crontab: 06:00 on the 1st) emails last month's per-item commission to `commission_report_email` via `includes/commission.php`. Recipient name/email set on the Profit split page.
 - Timezone is `Africa/Johannesburg`; currency is ZAR.
 - No new architectural patterns (routers, ORMs, templating engines) without asking.
 
