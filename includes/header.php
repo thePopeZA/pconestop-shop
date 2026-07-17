@@ -23,7 +23,7 @@ $activeCat = $activeCat ?? '';
 <header class="site-header">
     <div class="topbar">
         <div class="container">
-            <span><img src="<?= e(asset('img/flag-za.svg')) ?>" alt="South Africa" style="height:12px;width:18px;vertical-align:-1px;border-radius:2px"> Nationwide courier delivery · FREE on larger orders</span>
+            <span class="topbar-promo"><img src="<?= e(asset('img/flag-za.svg')) ?>" alt="South Africa" class="za-flag"> <span>Nationwide courier delivery · FREE on larger orders</span></span>
             <span><a href="<?= e(url('track.php')) ?>">Track order</a> &nbsp;·&nbsp; <a href="mailto:orders@pconestop.co.za">orders@pconestop.co.za</a></span>
         </div>
     </div>

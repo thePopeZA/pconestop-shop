@@ -36,8 +36,8 @@ include BASE_PATH . '/includes/header.php';
 
 <div class="shop-layout">
     <aside class="sidebar">
-        <h3>Categories</h3>
-        <ul class="cat-list">
+        <h3 class="cat-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="cat-list">Categories</h3>
+        <ul class="cat-list" id="cat-list">
             <li><a href="<?= e(url('shop.php')) ?>" class="<?= !$category ? 'active' : '' ?>">All Products</a></li>
             <?php foreach (sidebar_categories() as $c): ?>
                 <li>

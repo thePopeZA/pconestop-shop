@@ -63,6 +63,8 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .topbar { background: var(--ink); color: #cfd6e6; font-size: .8rem; }
 .topbar .container { display: flex; justify-content: space-between; align-items: center; height: 34px; }
 .topbar a { color: #fff; }
+.topbar-promo { display: inline-flex; align-items: center; gap: 6px; }
+.topbar-promo .za-flag { height: 12px; width: 18px; border-radius: 2px; flex: none; display: block; }
 .header-main { display: flex; align-items: center; gap: 24px; padding: 14px 0; }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.3rem; color: var(--ink); white-space: nowrap; }
 .logo:hover { text-decoration: none; }
@@ -109,6 +111,16 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 
 .sidebar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 0; align-self: start; overflow: hidden; }
 .sidebar h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); padding: 14px 18px 6px; margin: 0; }
+
+/* Collapsible categories on mobile only (desktop always shows the list). */
+@media (max-width: 900px) {
+    .sidebar { margin-bottom: 4px; }
+    .cat-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; user-select: none; }
+    .cat-toggle::after { content: "▾"; font-size: 1rem; transition: transform .18s; }
+    .sidebar.cats-open .cat-toggle::after { transform: rotate(180deg); }
+    .sidebar .cat-list { display: none; padding-bottom: 6px; }
+    .sidebar.cats-open .cat-list { display: block; }
+}
 .cat-list { list-style: none; margin: 0; padding: 0; }
 .cat-list a { display: flex; justify-content: space-between; padding: 8px 18px; color: var(--ink); font-size: .9rem; }
 .cat-list a:hover { background: var(--primary-tint); text-decoration: none; }

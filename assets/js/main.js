@@ -35,4 +35,18 @@
     // Auto-submit sort dropdown
     var sortSel = document.getElementById('sort-select');
     if (sortSel) sortSel.addEventListener('change', function () { sortSel.form.submit(); });
+
+    // Collapsible categories (mobile): tap the "Categories" heading to toggle.
+    var catToggle = document.querySelector('.cat-toggle');
+    if (catToggle) {
+        var sidebar = catToggle.closest('.sidebar');
+        function toggleCats() {
+            var open = sidebar.classList.toggle('cats-open');
+            catToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        catToggle.addEventListener('click', toggleCats);
+        catToggle.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCats(); }
+        });
+    }
 })();
