@@ -13,8 +13,20 @@ if (!$order) {
     exit;
 }
 
-// Update fulfilment status
+// Update fulfilment status / delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
+    // Deleting an order affects commission history, so partner-only.
+    if (($_POST['action'] ?? '') === 'delete') {
+        if (!is_partner()) {
+            flash('Only the partner can delete orders.', 'error');
+            redirect('admin/order.php?id=' . $id);
+        }
+        $num = $order['order_number'];
+        delete_order($id);
+        flash('Order ' . $num . ' deleted' . ($order['payment_status'] === 'paid' ? ' and its stock returned.' : '.'), 'info');
+        redirect('admin/orders.php');
+    }
+
     $new = $_POST['status'] ?? '';
     if (in_array($new, ['new','processing','shipped','completed','cancelled'], true)) {
         db()->prepare('UPDATE orders SET status = ? WHERE id = ?')->execute([$new, $id]);
@@ -100,6 +112,18 @@ include __DIR__ . '/_header.php';
                 <p class="muted" style="font-size:.78rem;margin-top:12px">Yoco checkout: <?= e($order['yoco_checkout_id']) ?><?php if ($order['yoco_payment_id']): ?><br>Payment: <?= e($order['yoco_payment_id']) ?><?php endif; ?></p>
             <?php endif; ?>
         </div>
+
+        <?php if (is_partner()): ?>
+        <div class="panel" style="border-left:4px solid var(--red,#c0392b)">
+            <h2 style="margin-top:0">Delete order</h2>
+            <p class="muted" style="margin-top:0;font-size:.85rem">Permanently removes this order and takes it out of the profit &amp; commission reports<?= $order['payment_status'] === 'paid' ? ', and returns its stock' : '' ?>. Use for test orders — real orders should be cancelled, not deleted.</p>
+            <form method="post" onsubmit="return confirm('Permanently delete order <?= e($order['order_number']) ?>? This cannot be undone.')">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="delete">
+                <button class="btn btn-ghost" type="submit" style="color:var(--red,#c0392b)">Delete this order</button>
+            </form>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php include __DIR__ . '/_footer.php'; ?>

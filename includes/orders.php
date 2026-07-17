@@ -118,6 +118,45 @@ function mark_order_failed(int $orderId, string $status = 'failed'): void
     $stmt->execute([$status, $orderId]);
 }
 
+/**
+ * Permanently delete an order (and its items via FK cascade). If the order was
+ * paid, the stock it consumed is returned to inventory. Intended for removing
+ * test orders; real fulfilled orders should be cancelled/refunded, not deleted.
+ */
+function delete_order(int $orderId): bool
+{
+    $pdo = db();
+    $order = order_by_id($orderId);
+    if (!$order) {
+        return false;
+    }
+    $pdo->beginTransaction();
+    try {
+        if ($order['payment_status'] === 'paid') {
+            $items = order_items_for($orderId);
+            $upd = $pdo->prepare(
+                'UPDATE products SET stock_qty = stock_qty + ?,
+                 stock_status = CASE WHEN stock_qty + ? <= 0 THEN "out_of_stock"
+                                     WHEN stock_qty + ? <= 3 THEN "low_stock"
+                                     ELSE "in_stock" END
+                 WHERE id = ?'
+            );
+            foreach ($items as $it) {
+                if ($it['product_id']) {
+                    $q = (int)$it['quantity'];
+                    $upd->execute([$q, $q, $q, (int)$it['product_id']]);
+                }
+            }
+        }
+        $pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$orderId]);
+        $pdo->commit();
+        return true;
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
 /** Reduce product stock by ordered quantities (best-effort). */
 function decrement_stock_for_order(int $orderId): void
 {
