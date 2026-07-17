@@ -300,7 +300,7 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 body { overflow-x: clip; }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 @media (max-width: 640px) {
-    .header-main { flex-wrap: wrap; gap: 12px; padding: 10px 0; }
+    .header-main { flex-wrap: wrap; gap: 12px; padding: 10px 20px; }
     .logo .logo-img { height: 44px; width: auto; }
     .search-form { order: 3; flex-basis: 100%; max-width: none; }
     .header-actions { margin-left: auto; }
