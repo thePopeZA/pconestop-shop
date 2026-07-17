@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/_bootstrap.php';
-require_admin();
+require_partner(); // build owner only — commission & profit are private to the partner
 
 /*
  * Profit split report.
@@ -20,6 +20,17 @@ if (!$hasCol) {
     db()->exec("UPDATE order_items oi JOIN products p ON p.id = oi.product_id
                 SET oi.cost_price = p.cost_price WHERE oi.cost_price = 0");
     flash('Added cost snapshot column to order_items and backfilled existing rows.', 'info');
+}
+
+/* Partner updates their own commission rate here (owner never sees this control). */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'set_rate' && csrf_check()) {
+    $newRate = (float)($_POST['commission_rate_pct'] ?? 40);
+    $newRate = max(0, min(100, $newRate));
+    db()->prepare('INSERT INTO settings (skey, svalue) VALUES ("commission_rate_pct", ?)
+                   ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)')
+        ->execute([(string)$newRate]);
+    flash('Commission rate updated to ' . rtrim(rtrim(number_format($newRate, 2), '0'), '.') . '%.', 'success');
+    redirect('admin/profit.php' . (!empty($_POST['m']) ? '?m=' . urlencode((string)$_POST['m']) : ''));
 }
 
 $rate = (float)setting('commission_rate_pct', '40') / 100;
@@ -90,6 +101,22 @@ $adminTitle = 'Profit split';
 $adminNav = 'profit';
 include __DIR__ . '/_header.php';
 ?>
+
+<div class="panel" style="margin-bottom:20px;border-left:4px solid var(--green,#0a7d3b)">
+    <h2 style="margin-top:0">Your commission rate</h2>
+    <p class="muted" style="margin-top:0;font-size:.88rem">Private to this partner login — the shop admin can't see or change it. Applies to the figures below and to CSV exports.</p>
+    <form method="post" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="set_rate">
+        <input type="hidden" name="m" value="<?= e($month) ?>">
+        <div class="field" style="margin:0">
+            <label>Commission (%)</label>
+            <input name="commission_rate_pct" value="<?= e(rtrim(rtrim(number_format($rate * 100, 2), '0'), '.')) ?>" style="max-width:120px">
+        </div>
+        <button class="btn" type="submit">Save rate</button>
+        <span class="muted" style="font-size:.85rem">You take <strong><?= round($rate * 100) ?>%</strong> · owner keeps <strong><?= round((1 - $rate) * 100) ?>%</strong></span>
+    </form>
+</div>
 
 <div class="panel" style="margin-bottom:20px">
     <h2 style="margin-top:0">Month by month</h2>

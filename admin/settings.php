@@ -2,7 +2,9 @@
 require_once __DIR__ . '/_bootstrap.php';
 require_admin();
 
-$keys = ['markup_multiplier','vat_multiplier','shipping_fee_ex','shipping_free_cost_over','store_tagline','commission_rate_pct',
+// Note: commission_rate_pct is intentionally NOT here — it lives on the
+// partner-only Profit split page so the shop owner can't change it.
+$keys = ['markup_multiplier','vat_multiplier','shipping_fee_ex','shipping_free_cost_over','store_tagline',
          'price_floor_margin_pct','price_cap_margin_pct','price_rrp_nudge_pct','syntech_rep_name','syntech_rep_email'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check()) {
@@ -79,11 +81,6 @@ include __DIR__ . '/_header.php';
         <div class="field">
             <label>Store tagline</label>
             <input name="store_tagline" value="<?= e($vals['store_tagline'] ?? '') ?>">
-        </div>
-        <div class="field">
-            <label>Commission rate (%)</label>
-            <input name="commission_rate_pct" value="<?= e($vals['commission_rate_pct'] ?? '40') ?>">
-            <small class="muted">Your share of profit (ex VAT) on each sale — used by the Profit split report. Owner keeps the rest.</small>
         </div>
         <button class="btn" type="submit">Save settings</button>
     </form>

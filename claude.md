@@ -39,6 +39,7 @@ DEPLOY.md                            → deployment steps for cPanel
 - Follow the existing pattern: procedural pages that `require config/config.php`, shared logic in `includes/`, prepared PDO statements everywhere.
 - Escape all output with the existing `e()` helper; never echo raw user/feed data.
 - Admin pages go through `admin/_bootstrap.php` (auth check) and use `_header.php`/`_footer.php`.
+- **Admin roles:** `admin_users.role` is `admin` (shop staff/owner) or `partner` (build owner). Partner-only pages call `require_partner()`: Profit split, commission rate, and Admin users. The commission rate is set ONLY on the partner Profit split page — never expose it to the shop owner. Manage logins/roles via `admin/users.php` (partner-only).
 - Timezone is `Africa/Johannesburg`; currency is ZAR.
 - No new architectural patterns (routers, ORMs, templating engines) without asking.
 

@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
     username      VARCHAR(80) NOT NULL,
     email         VARCHAR(200) DEFAULT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    -- 'admin' = shop staff/owner; 'partner' = build owner, sees commission & profit split
+    role          ENUM('admin','partner') NOT NULL DEFAULT 'admin',
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login    DATETIME DEFAULT NULL,
     PRIMARY KEY (id),

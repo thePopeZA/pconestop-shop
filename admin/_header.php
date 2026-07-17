@@ -7,10 +7,14 @@ $nav = [
     'dashboard' => ['index.php', '📊 Dashboard'],
     'products'  => ['products.php', '📦 Products'],
     'orders'    => ['orders.php', '🧾 Orders'],
-    'profit'    => ['profit.php', '💰 Profit split'],
     'feeds'     => ['feeds.php', '🔄 Feed sync'],
     'settings'  => ['settings.php', '⚙️ Settings'],
 ];
+// Profit split, commission & user management are partner-only (build owner).
+if (is_partner()) {
+    $nav['profit'] = ['profit.php', '💰 Profit split'];
+    $nav['users']  = ['users.php', '👤 Admin users'];
+}
 ?><!doctype html>
 <html lang="en">
 <head>
