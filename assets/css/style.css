@@ -160,7 +160,7 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 .stock-low { color: var(--amber); background: var(--amber-tint); }
 .stock-back { color: var(--ink-soft); background: #EEF1F5; }
 .stock-out { color: var(--red); background: var(--red-tint); }
-.badge-promo { position: absolute; top: 10px; left: 10px; background: var(--accent); color: #fff; font-size: .7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
+.badge-promo { position: absolute; top: 10px; left: 10px; background: var(--mint); color: var(--ink); font-size: .7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
 
 /* ---------- Product detail ---------- */
 .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
