@@ -51,8 +51,8 @@ h1,h2,h3,h4 { line-height: 1.2; margin: 0 0 .5em; color: var(--ink); }
 }
 .btn:hover { background: var(--ink-lift); text-decoration: none; }
 .btn:disabled, .btn.disabled { background: #c3cad8; cursor: not-allowed; pointer-events: none; }
-.btn-accent { background: var(--accent); }
-.btn-accent:hover { background: var(--accent-dark); }
+.btn-accent { background: var(--ink); }
+.btn-accent:hover { background: var(--ink-lift); }
 .btn-ghost { background: transparent; color: var(--primary); border-color: var(--line); }
 .btn-ghost:hover { background: var(--primary-tint); }
 .btn-block { width: 100%; }
