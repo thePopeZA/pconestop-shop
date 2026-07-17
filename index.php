@@ -6,7 +6,7 @@ $pageTitle = APP_NAME;
 $activeCat = '';
 $newArrivals = homepage_products(10);
 $deals = promo_products(5);
-$cats = nav_categories(8);
+$cats = homepage_categories(8);
 
 include BASE_PATH . '/includes/header.php';
 ?>

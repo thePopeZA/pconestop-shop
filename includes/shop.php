@@ -20,6 +20,48 @@ function nav_categories(int $limit = 10): array
     return array_slice($cache, 0, $limit);
 }
 
+/**
+ * Curated category order for the homepage tiles — premium categories first
+ * (they have the best product images), with weaker-image ones kept off the
+ * front page. Priority list leads in this exact order; any remaining slots are
+ * filled by product count, skipping the excluded slugs. Edit these two arrays
+ * to change what shows on the homepage.
+ */
+function homepage_categories(int $limit = 8): array
+{
+    $priority = ['computers', 'computer-peripherals', 'networking-security', 'power', 'components'];
+    $exclude  = ['cables', 'appliances', 'tv-audio', 'bags-luggage'];
+
+    $all = db()->query(
+        'SELECT id, name, slug, product_count FROM categories
+         WHERE parent_id IS NULL AND product_count > 0
+         ORDER BY product_count DESC, name ASC'
+    )->fetchAll();
+
+    $bySlug = [];
+    foreach ($all as $c) {
+        $bySlug[$c['slug']] = $c;
+    }
+
+    $out = [];
+    foreach ($priority as $slug) {
+        if (isset($bySlug[$slug])) {
+            $out[] = $bySlug[$slug];
+            unset($bySlug[$slug]);
+        }
+    }
+    // Fill remaining slots by product count, skipping the excluded slugs.
+    foreach ($bySlug as $c) {
+        if (count($out) >= $limit) {
+            break;
+        }
+        if (!in_array($c['slug'], $exclude, true)) {
+            $out[] = $c;
+        }
+    }
+    return array_slice($out, 0, $limit);
+}
+
 /** Full category record by slug. */
 function category_by_slug(string $slug): ?array
 {
