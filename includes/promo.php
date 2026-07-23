@@ -16,6 +16,8 @@ require_once BASE_PATH . '/includes/shop.php';
 // Only promote deals on real products, not cheap accessories with inflated
 // RRPs. Deals are ranked by actual Rand saved (below RRP), highest first.
 const PROMO_MIN_PRICE = 750.00;
+// Ignore token discounts — a deal must save at least this much (Rand) to qualify.
+const PROMO_MIN_SAVING = 100.00;
 
 /**
  * A product's top-level (primary) category display name — the first segment of
@@ -74,10 +76,11 @@ function promo_feed(int $arrivalsLimit = 12): array
          WHERE active = 1 AND stock_qty > 0
            AND rrp IS NOT NULL AND rrp > price
            AND price >= ?
+           AND (rrp - price) >= ?
            AND image_url IS NOT NULL AND image_url <> ''
          ORDER BY (rrp - price) DESC, (rrp - price) / rrp DESC, name ASC"
     );
-    $stmt->execute([PROMO_MIN_PRICE]);
+    $stmt->execute([PROMO_MIN_PRICE, PROMO_MIN_SAVING]);
     $dealRows = $stmt->fetchAll();
 
     $deals = [];
