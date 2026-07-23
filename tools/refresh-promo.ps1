@@ -38,7 +38,7 @@ if (-not $pngs -or $pngs.Count -eq 0) {
 foreach ($f in $pngs) { Move-Item -Path $f.FullName -Destination (Join-Path $imgDir $f.Name) -Force }
 Write-Host "Moved $($pngs.Count) card image(s) into promo-82f02098/img/" -ForegroundColor Green
 
-# 3. Commit + push
+# 3. Commit
 Set-Location $repo
 git add promo-82f02098/img
 $staged = git status --porcelain -- promo-82f02098/img
@@ -48,16 +48,23 @@ if (-not $staged) {
 }
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
 git commit -m "Refresh promo status images ($stamp) - $($pngs.Count) cards"
-git push origin main
 
-# 4. Manual next steps (no automated deploy exists for this project)
+# 4. Try to push, then report the exact remaining manual steps.
+$pushOk = $false
+try { git push origin main; if ($LASTEXITCODE -eq 0) { $pushOk = $true } } catch {}
+$ahead = (git rev-list --count origin/main..HEAD 2>$null)
+if (-not $ahead) { $ahead = '?' }
+
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host " Pushed to GitHub. Deploy is MANUAL for this project:" -ForegroundColor Cyan
-Write-Host "   1) cPanel -> Git Version Control -> Update from Remote"
-Write-Host "        (pulls the images onto shop.pconestop.co.za)"
-Write-Host "   2) Alert the team:"
-Write-Host "        $notifyUrl"
-Write-Host "   3) Gallery to post from:"
-Write-Host "        $galleryUrl"
+Write-Host " REMAINING STEPS (deploy is MANUAL for this project):" -ForegroundColor Cyan
+if ($pushOk -and $ahead -eq '0') {
+    Write-Host "   1) Push ......... DONE (pushed to origin/main)" -ForegroundColor Green
+} else {
+    Write-Host "   1) Push ......... TODO -> run:  git push origin main" -ForegroundColor Yellow
+    Write-Host "                     (local is ahead of origin by $ahead commit(s))"
+}
+Write-Host "   2) Deploy ....... cPanel -> Git Version Control -> Update from Remote"
+Write-Host "   3) Notify team .. open:  $notifyUrl"
+Write-Host "   4) Post from .... $galleryUrl"
 Write-Host "==================================================================" -ForegroundColor Cyan

@@ -26,13 +26,16 @@ if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < DEALS_CACHE_TTL) {
 
 try {
     $feed = promo_feed();
+    $cards = promo_card_list($feed, 10); // category-spread selection of the 10
     $payload = [
         'generated_at' => date('c'),
         'currency'     => 'ZAR',
         'counts'       => [
             'deals'    => count($feed['deals']),
             'arrivals' => count($feed['arrivals']),
+            'cards'    => count($cards),
         ],
+        'cards'    => $cards,
         'deals'    => $feed['deals'],
         'arrivals' => $feed['arrivals'],
     ];

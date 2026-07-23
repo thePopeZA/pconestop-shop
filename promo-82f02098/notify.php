@@ -41,6 +41,7 @@ $galleryUrl = url('promo-82f02098/');
 $from       = 'no-reply@pconestop.co.za';
 $fromName   = 'PC One Stop Promos';
 $subject    = "PCOS promo cards ready — {$count} to post";
+$oneLiner   = "{$count} promo card" . ($count === 1 ? '' : 's') . " ready — open {$galleryUrl} on your phone and tap Share on each to post to WhatsApp status.";
 
 $body = "<div style=\"font-family:Arial,sans-serif;color:#1a2233;max-width:520px\">"
     . "<h2 style=\"color:#0E63D8;margin-bottom:6px\">🔥 New promo cards are ready</h2>"
@@ -49,6 +50,21 @@ $body = "<div style=\"font-family:Arial,sans-serif;color:#1a2233;max-width:520px
     . "<p style=\"color:#555\">On your phone: open the link, tap <strong>Share</strong> on each card to post the image with its caption to WhatsApp status. Posted cards dim automatically.</p>"
     . "<p style=\"color:#999;font-size:12px\">Automated notice from shop.pconestop.co.za</p>"
     . "</div>";
+
+// SAFETY: only the real production host may send. Anywhere else (localhost,
+// staging, an IP) is a DRY-RUN that emails nobody — it just shows the message.
+$host = strtolower(explode(':', (string)($_SERVER['HTTP_HOST'] ?? ''))[0]);
+$isProd = ($host === 'shop.pconestop.co.za');
+
+if (!$isProd) {
+    echo "DRY-RUN — host '{$host}' is not shop.pconestop.co.za, so no mail was sent.\n";
+    echo "The message that WOULD have been sent:\n\n";
+    echo "From:       {$fromName} <{$from}>\n";
+    echo "To:         " . implode(', ', $recipients) . "\n";
+    echo "Subject:    {$subject}\n";
+    echo "\n{$oneLiner}\n";
+    exit;
+}
 
 $sent = 0;
 foreach ($recipients as $to) {

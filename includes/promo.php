@@ -17,6 +17,23 @@ require_once BASE_PATH . '/includes/shop.php';
 // RRPs. Deals are ranked by actual Rand saved (below RRP), highest first.
 const PROMO_MIN_PRICE = 750.00;
 
+/**
+ * A product's top-level (primary) category display name — the first segment of
+ * its category_path ("Computers > Mini PCs > Barebone systems" -> "Computers").
+ * category_path is the primary/first membership as resolved by the importer.
+ */
+function promo_category(array $p): string
+{
+    $path = trim((string)($p['category_path'] ?? ''));
+    if ($path !== '') {
+        $first = trim(explode('>', $path)[0]);
+        if ($first !== '') {
+            return $first;
+        }
+    }
+    return 'Other';
+}
+
 /** Shape one product row into the public promo item structure. */
 function promo_item(array $p, bool $isDeal): array
 {
@@ -29,6 +46,7 @@ function promo_item(array $p, bool $isDeal): array
         'slug'        => (string)$p['slug'],
         'name'        => (string)$p['name'],
         'brand'       => (string)($p['brand'] ?? ''),
+        'category'    => promo_category($p),
         'price_now'   => $now,
         'price_was'   => $was,
         'save_amount' => $save,
@@ -92,19 +110,70 @@ function promo_feed(int $arrivalsLimit = 12): array
 }
 
 /**
- * The ordered card list a promo run uses: all deals (by % desc) topped up
- * with arrivals to exactly $count cards.
+ * The ordered 10-card list for a promo run, with CATEGORY SPREAD so one
+ * category can't dominate. Qualifying deals (already Rand-saving desc) are:
+ *   Pass 1: best deal from each category, categories ordered by their best
+ *           deal's saving; Pass 2: second-best per category; and so on until
+ *           $count is reached or the deals run out. Only then do we fill with
+ *           arrivals. Final pack order: deals by Rand saving desc, arrivals
+ *           last (newest first).
  */
 function promo_card_list(array $feed, int $count = 10): array
 {
-    $cards = $feed['deals'];
-    foreach ($feed['arrivals'] as $a) {
-        if (count($cards) >= $count) {
-            break;
-        }
-        $cards[] = $a;
+    // Group deals by category, preserving the incoming saving-desc order.
+    // Because $feed['deals'] is sorted by saving desc, the order in which
+    // categories first appear = ordered by each category's best deal.
+    $byCat = [];
+    foreach ($feed['deals'] as $d) {
+        $cat = $d['category'] !== '' ? $d['category'] : 'Other';
+        $byCat[$cat][] = $d;
     }
-    return array_slice($cards, 0, $count);
+    $catOrder = array_keys($byCat);
+
+    // Round-robin: pass N takes the (N+1)-th best deal from each category.
+    $selected = [];
+    $round = 0;
+    $pickedThisRound = true;
+    while (count($selected) < $count && $pickedThisRound) {
+        $pickedThisRound = false;
+        foreach ($catOrder as $cat) {
+            if (isset($byCat[$cat][$round])) {
+                $selected[] = $byCat[$cat][$round];
+                $pickedThisRound = true;
+                if (count($selected) >= $count) {
+                    break;
+                }
+            }
+        }
+        $round++;
+    }
+
+    // Only if deals are exhausted do we top up with arrivals (newest first).
+    if (count($selected) < $count) {
+        foreach ($feed['arrivals'] as $a) {
+            $selected[] = $a;
+            if (count($selected) >= $count) {
+                break;
+            }
+        }
+    }
+    $selected = array_slice($selected, 0, $count);
+
+    // Final pack order: deals by Rand saving desc; arrivals after, newest first
+    // (usort is stable in PHP 8+, so arrivals keep their incoming order).
+    usort($selected, static function (array $a, array $b): int {
+        $aDeal = $a['type'] === 'deal';
+        $bDeal = $b['type'] === 'deal';
+        if ($aDeal !== $bDeal) {
+            return $aDeal ? -1 : 1;
+        }
+        if ($aDeal) {
+            return $b['save_amount'] <=> $a['save_amount'];
+        }
+        return 0;
+    });
+
+    return $selected;
 }
 
 /** WhatsApp caption text for one promo item. Deals are framed vs RRP (honest —

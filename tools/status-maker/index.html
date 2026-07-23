@@ -126,12 +126,17 @@
         // Shrink the huge now-price if the string is long.
         var nowSize = nowStr.length <= 9 ? 124 : (nowStr.length <= 12 ? 100 : 82);
 
+        // Category suffix for the tag pill, uppercased and truncated sensibly.
+        var cat = (item.category || '').toUpperCase();
+        if (cat.length > 15) cat = cat.slice(0, 14).replace(/[\s&]+$/, '') + '…';
+        var tagText = (isDeal ? '🔥 HOT DEAL' : '⚡ JUST LANDED') + (cat ? ' · ' + cat : '');
+
         var card = document.createElement('div');
         card.className = 'promo-card';
         card.innerHTML =
             '<div class="pc-head">' +
                 '<div class="pc-logo-pill"><img src="/assets/img/logo.png" alt="PC One Stop"></div>' +
-                '<div class="pc-tag ' + (isDeal ? 'deal' : 'arrival') + '">' + (isDeal ? '🔥 HOT DEAL' : '⚡ JUST LANDED') + '</div>' +
+                '<div class="pc-tag ' + (isDeal ? 'deal' : 'arrival') + '">' + esc(tagText) + '</div>' +
             '</div>' +
             '<div class="pc-panel">' +
                 '<img class="photo" crossorigin="anonymous" src="' + proxy(item.image) + '" alt="">' +
@@ -251,11 +256,8 @@
         fetch('/api/deals.json.php', { cache: 'no-store' })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                var deals = data.deals || [];
-                var arrivals = data.arrivals || [];
-                var list = deals.slice();
-                for (var i = 0; i < arrivals.length && list.length < CARD_COUNT; i++) list.push(arrivals[i]);
-                list = list.slice(0, CARD_COUNT);
+                // The endpoint applies the category-spread selection server-side.
+                var list = (data.cards || []).slice(0, CARD_COUNT);
                 if (!list.length) { setStatus('No deals or arrivals found.'); grid.innerHTML = '<p style="color:#8fa6c4;padding:30px">Nothing to show.</p>'; return; }
                 render(list);
             })
