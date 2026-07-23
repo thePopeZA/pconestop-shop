@@ -52,6 +52,10 @@ if (is_dir($imgDir)) {
 sort($files, SORT_NATURAL | SORT_FLAG_CASE);
 
 $total = count($files);
+// Signature of the current pack (its exact set of images). When it changes,
+// the gallery treats it as a NEW pack and clears the posted ticks, so stable
+// top products don't carry a "posted ✓" over from last week's pack.
+$packSig = md5(implode('|', $files));
 $cards = [];
 $n = 0;
 foreach ($files as $file) {
@@ -129,6 +133,18 @@ foreach ($files as $file) {
 (function () {
     'use strict';
     var LSKEY = 'pcos-promo-posted';
+    var LSKEY_SIG = 'pcos-promo-pack';
+    var PACK_SIG = <?= json_encode($packSig) ?>;
+
+    // New pack? (its set of images changed) -> start with a clean slate so
+    // ticks are remembered per image within a pack, never inherited across packs.
+    try {
+        if (localStorage.getItem(LSKEY_SIG) !== PACK_SIG) {
+            localStorage.removeItem(LSKEY);
+            localStorage.setItem(LSKEY_SIG, PACK_SIG);
+        }
+    } catch (e) {}
+
     function posted() { try { return JSON.parse(localStorage.getItem(LSKEY) || '{}'); } catch (e) { return {}; } }
     function savePosted(o) { try { localStorage.setItem(LSKEY, JSON.stringify(o)); } catch (e) {} }
 
