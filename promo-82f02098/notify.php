@@ -16,6 +16,8 @@ const NOTIFY_KEY = '2ce5b7f83a48a976';
 // Easy-to-extend recipient list.
 $recipients = [
     'jurgen@stratusnet.co.za',
+    'REPLACE-2@example', 'REPLACE-3@example',
+    'REPLACE-4@example', 'REPLACE-5@example',
 ];
 
 header('Content-Type: text/plain; charset=utf-8');

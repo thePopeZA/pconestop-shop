@@ -1,75 +1,56 @@
 <?php
 /**
- * Secret promo gallery. Lists the published PNGs in img/, each with its
- * generated WhatsApp caption, copy/share/save buttons, and a "posted"
- * memory in localStorage. Not linked from anywhere; noindex.
+ * Secret promo gallery. Lists the published PNGs in img/ with copy/share/save
+ * and a "posted" memory in localStorage. Not linked from anywhere; noindex.
  *
- * Captions are generated from the live promo feed, matched to each PNG by the
- * slug embedded in its filename: pcos-status-01-<slug>.png
+ * Captions are FROZEN at publish time: they are read ONLY from captions.json
+ * (filename => caption), which is committed alongside the PNGs by the refresh
+ * step. There is ZERO live DB dependency here — a deal expiring or drifting
+ * never changes a published pack. If captions.json is missing, the gallery
+ * shows the empty state rather than broken cards.
  */
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__) . '/config/config.php';
-require_once BASE_PATH . '/includes/promo.php';
+require_once dirname(__DIR__) . '/config/config.php'; // for e(); never touches the DB here
 
-// Build a slug -> item lookup from the current feed.
-$bySlug = [];
-try {
-    $feed = promo_feed();
-    foreach (array_merge($feed['deals'], $feed['arrivals']) as $it) {
-        $bySlug[$it['slug']] = $it;
+// Load the frozen caption snapshot: { "pcos-status-01-<slug>.png": "caption" }.
+$captions = [];
+$capFile = __DIR__ . '/captions.json';
+if (is_file($capFile)) {
+    $decoded = json_decode((string)file_get_contents($capFile), true);
+    if (is_array($decoded)) {
+        $captions = $decoded;
     }
-} catch (Throwable $e) {
-    $bySlug = [];
 }
 
-/** Turn a filename into [number, slug]. e.g. pcos-status-03-acme-mouse.png */
-function parse_promo_filename(string $file): array
-{
-    if (preg_match('/^pcos-status-(\d+)-(.+)\.png$/i', $file, $m)) {
-        return [(int)$m[1], strtolower($m[2])];
-    }
-    return [0, ''];
-}
-
-/** Fallback caption when a slug is no longer in the feed (e.g. sold out). */
-function fallback_caption(string $slug): string
-{
-    $name = ucwords(str_replace('-', ' ', $slug));
-    return "🛒 {$name}\nShop now: " . url('product.php?slug=' . rawurlencode($slug)) . "\n🚚 Nationwide delivery · Yoco secure";
-}
-
-$imgDir = __DIR__ . '/img';
-$files = [];
-if (is_dir($imgDir)) {
-    foreach (scandir($imgDir) as $f) {
-        if (preg_match('/\.png$/i', $f)) {
-            $files[] = $f;
+// Cards = each captioned PNG that actually exists on disk, in filename order.
+$cards = [];
+if ($captions) {
+    $names = array_keys($captions);
+    sort($names, SORT_NATURAL | SORT_FLAG_CASE);
+    foreach ($names as $file) {
+        $file = (string)$file;
+        if (!preg_match('/\.png$/i', $file)) {
+            continue;
         }
+        if (!is_file(__DIR__ . '/img/' . basename($file))) {
+            continue;
+        }
+        $cards[] = ['file' => basename($file), 'caption' => (string)$captions[$file]];
     }
 }
-sort($files, SORT_NATURAL | SORT_FLAG_CASE);
 
-$total = count($files);
+$total = count($cards);
 // Signature of the current pack (its exact set of images). When it changes,
 // the gallery treats it as a NEW pack and clears the posted ticks, so stable
 // top products don't carry a "posted ✓" over from last week's pack.
-$packSig = md5(implode('|', $files));
-$cards = [];
-$n = 0;
-foreach ($files as $file) {
-    $n++;
-    [, $slug] = parse_promo_filename($file);
-    $item = $bySlug[$slug] ?? null;
-    $caption = $item ? promo_caption($item) : fallback_caption($slug);
-    $cards[] = [
-        'file'    => $file,
-        'num'     => str_pad((string)$n, 2, '0', STR_PAD_LEFT),
-        'total'   => str_pad((string)$total, 2, '0', STR_PAD_LEFT),
-        'caption' => $caption,
-    ];
+$packSig = md5(implode('|', array_column($cards, 'file')));
+foreach ($cards as $i => &$c) {
+    $c['num']   = str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT);
+    $c['total'] = str_pad((string)$total, 2, '0', STR_PAD_LEFT);
 }
+unset($c);
 ?><!doctype html>
 <html lang="en">
 <head>

@@ -18,6 +18,9 @@ require_once BASE_PATH . '/includes/shop.php';
 const PROMO_MIN_PRICE = 750.00;
 // Ignore token discounts — a deal must save at least this much (Rand) to qualify.
 const PROMO_MIN_SAVING = 100.00;
+// Promo product links always point at the LIVE shop, even when the status
+// maker / endpoint run on localhost — captions get frozen for public posting.
+const PROMO_PUBLIC_BASE = 'https://shop.pconestop.co.za';
 
 /**
  * A product's top-level (primary) category display name — the first segment of
@@ -44,7 +47,7 @@ function promo_item(array $p, bool $isDeal): array
     $save = $was !== null ? round($was - $now, 2) : 0.0;
     $pct  = ($was !== null && $was > 0) ? (int)round(($was - $now) / $was * 100) : 0;
 
-    return [
+    $item = [
         'slug'        => (string)$p['slug'],
         'name'        => (string)$p['name'],
         'brand'       => (string)($p['brand'] ?? ''),
@@ -55,9 +58,11 @@ function promo_item(array $p, bool $isDeal): array
         'save_pct'    => $pct,
         'stock'       => ($p['stock_status'] === 'low_stock') ? 'Low stock' : 'In stock',
         'image'       => (string)($p['image_url'] ?? ''),
-        'url'         => product_url($p),
+        'url'         => PROMO_PUBLIC_BASE . '/product.php?slug=' . rawurlencode((string)$p['slug']),
         'type'        => $isDeal ? 'deal' : 'arrival',
     ];
+    $item['caption'] = promo_caption($item); // frozen at publish time by the maker
+    return $item;
 }
 
 /**

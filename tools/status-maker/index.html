@@ -206,11 +206,29 @@
             .catch(function (e) { entry.dl.textContent = '⚠'; entry.dl.disabled = false; console.error(e); });
     }
 
+    // Frozen caption snapshot for the pack — moved into the gallery by
+    // refresh-promo and read there instead of the live DB.
+    function downloadCaptions() {
+        var obj = {};
+        cards.forEach(function (e) { obj[e.name] = e.caption; });
+        var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'pcos-captions.json';
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+    }
+
     function downloadAll() {
         dlAllBtn.disabled = true;
         var i = 0;
         function next() {
-            if (i >= cards.length) { dlAllBtn.disabled = false; setStatus('Downloaded ' + cards.length + ' cards.'); return; }
+            if (i >= cards.length) {
+                downloadCaptions();
+                dlAllBtn.disabled = false;
+                setStatus('Downloaded ' + cards.length + ' cards + pcos-captions.json.');
+                return;
+            }
             setStatus('Rendering ' + (i + 1) + ' / ' + cards.length + '…');
             downloadOne(cards[i]).then(function () { i++; setTimeout(next, 250); });
         }
@@ -241,7 +259,7 @@
             cell.appendChild(frame); cell.appendChild(meta);
             grid.appendChild(cell);
 
-            var entry = { card: card, name: name, dl: dl };
+            var entry = { card: card, name: name, dl: dl, caption: item.caption || '' };
             dl.addEventListener('click', function () { downloadOne(entry); });
             cards.push(entry);
         });

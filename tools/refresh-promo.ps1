@@ -38,16 +38,28 @@ if (-not $pngs -or $pngs.Count -eq 0) {
 foreach ($f in $pngs) { Move-Item -Path $f.FullName -Destination (Join-Path $imgDir $f.Name) -Force }
 Write-Host "Moved $($pngs.Count) card image(s) into promo-82f02098/img/" -ForegroundColor Green
 
-# 3. Commit
+# 2b. Move the frozen captions snapshot in beside the PNGs (overwrites last pack's).
+$capSrc = Join-Path $downloads 'pcos-captions.json'
+$capDst = Join-Path $repo 'promo-82f02098\captions.json'
+if (Test-Path $capSrc) {
+    Move-Item -Path $capSrc -Destination $capDst -Force
+    Write-Host "Moved captions snapshot into promo-82f02098/captions.json" -ForegroundColor Green
+} else {
+    Write-Host "WARNING: pcos-captions.json not found in $downloads." -ForegroundColor Red
+    Write-Host "         Use the maker's 'Download all' (it writes the captions file)." -ForegroundColor Red
+    Write-Host "         Without it the gallery will show the empty state." -ForegroundColor Red
+}
+
+# 3. Commit (images + captions together, so the gallery and pack always match)
 Set-Location $repo
-git add promo-82f02098/img
-$staged = git status --porcelain -- promo-82f02098/img
+git add promo-82f02098/img promo-82f02098/captions.json
+$staged = git status --porcelain -- promo-82f02098/img promo-82f02098/captions.json
 if (-not $staged) {
-    Write-Host "No changes to commit (identical images already published)." -ForegroundColor Yellow
+    Write-Host "No changes to commit (identical pack already published)." -ForegroundColor Yellow
     exit 0
 }
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-git commit -m "Refresh promo status images ($stamp) - $($pngs.Count) cards"
+git commit -m "Refresh promo pack ($stamp) - $($pngs.Count) cards"
 
 # 4. Try to push, then report the exact remaining manual steps.
 $pushOk = $false
