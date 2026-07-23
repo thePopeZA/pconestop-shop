@@ -25,3 +25,9 @@ Thumbs.db
 # Local uploads
 /uploads/*
 !/uploads/.gitkeep
+
+# Promo packs are published server-side from the admin panel (not via git),
+# so the images + frozen captions live only on the server.
+/promo-82f02098/img/*
+!/promo-82f02098/img/.gitkeep
+/promo-82f02098/captions.json

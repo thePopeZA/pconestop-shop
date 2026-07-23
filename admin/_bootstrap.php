@@ -62,6 +62,23 @@ function require_partner(): void
     }
 }
 
+/** Owner (admin) or partner — allowed to publish promos. Staff are not. */
+function can_publish_promos(): bool
+{
+    return in_array(admin_role(), ['admin', 'partner'], true);
+}
+
+/** Guard the promo tools (owner + partner only). */
+function require_promo_access(): void
+{
+    require_admin();
+    if (!can_publish_promos()) {
+        http_response_code(403);
+        flash('Promos are for the owner and partner only.', 'error');
+        redirect('admin/index.php');
+    }
+}
+
 /** Ensure admin_users has the role enum (3-value) and must_change flag (self-migrate). */
 function ensure_admin_columns(): void
 {

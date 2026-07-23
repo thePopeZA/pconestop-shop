@@ -10,6 +10,10 @@ $nav = [
     'feeds'     => ['feeds.php', '🔄 Feed sync'],
     'settings'  => ['settings.php', '⚙️ Settings'],
 ];
+// Promo studio — owner + partner (not staff).
+if (can_publish_promos()) {
+    $nav['promos'] = ['promos.php', '📣 Promos'];
+}
 // Profit split & commission are partner-only (build owner).
 if (is_partner()) {
     $nav['profit'] = ['profit.php', '💰 Profit split'];
