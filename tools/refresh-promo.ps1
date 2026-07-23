@@ -1,0 +1,63 @@
+<#
+  refresh-promo.ps1
+  Publishes the promo status images into the secret gallery and commits them.
+
+    1. Wipes  promo-82f02098/img/  (keeps .gitkeep)
+    2. Moves  pcos-status-*.png  from your Downloads folder into it
+    3. Commits (dated message) and pushes to GitHub
+    4. Prints the manual next steps
+
+  Deploy for this project is MANUAL (cPanel Git "Update from Remote" — there is
+  no CI/FTP/automated deploy and no SSH), so this script does NOT deploy or hit
+  the notifier itself. It stops after pushing and tells you what to click.
+
+  Run from anywhere:   powershell -File tools\refresh-promo.ps1
+#>
+
+$ErrorActionPreference = 'Stop'
+
+$repo      = Split-Path -Parent $PSScriptRoot                 # tools\ -> repo root
+$imgDir    = Join-Path $repo 'promo-82f02098\img'
+$downloads = Join-Path $env:USERPROFILE 'Downloads'
+$galleryUrl = 'https://shop.pconestop.co.za/promo-82f02098/'
+$notifyUrl  = 'https://shop.pconestop.co.za/promo-82f02098/notify.php?key=2ce5b7f83a48a976'
+
+if (-not (Test-Path $imgDir)) { throw "Gallery img folder not found: $imgDir" }
+
+# 1. Wipe existing PNGs (keep .gitkeep and anything non-PNG)
+Get-ChildItem -Path $imgDir -Filter '*.png' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+Write-Host "Cleared old PNGs from promo-82f02098/img/" -ForegroundColor DarkGray
+
+# 2. Move the new cards in from Downloads
+$pngs = Get-ChildItem -Path $downloads -Filter 'pcos-status-*.png' -File -ErrorAction SilentlyContinue
+if (-not $pngs -or $pngs.Count -eq 0) {
+    Write-Host "No pcos-status-*.png files found in $downloads." -ForegroundColor Yellow
+    Write-Host "Generate them first with the Status Maker, then re-run this script." -ForegroundColor Yellow
+    exit 1
+}
+foreach ($f in $pngs) { Move-Item -Path $f.FullName -Destination (Join-Path $imgDir $f.Name) -Force }
+Write-Host "Moved $($pngs.Count) card image(s) into promo-82f02098/img/" -ForegroundColor Green
+
+# 3. Commit + push
+Set-Location $repo
+git add promo-82f02098/img
+$staged = git status --porcelain -- promo-82f02098/img
+if (-not $staged) {
+    Write-Host "No changes to commit (identical images already published)." -ForegroundColor Yellow
+    exit 0
+}
+$stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
+git commit -m "Refresh promo status images ($stamp) - $($pngs.Count) cards"
+git push origin main
+
+# 4. Manual next steps (no automated deploy exists for this project)
+Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host " Pushed to GitHub. Deploy is MANUAL for this project:" -ForegroundColor Cyan
+Write-Host "   1) cPanel -> Git Version Control -> Update from Remote"
+Write-Host "        (pulls the images onto shop.pconestop.co.za)"
+Write-Host "   2) Alert the team:"
+Write-Host "        $notifyUrl"
+Write-Host "   3) Gallery to post from:"
+Write-Host "        $galleryUrl"
+Write-Host "==================================================================" -ForegroundColor Cyan

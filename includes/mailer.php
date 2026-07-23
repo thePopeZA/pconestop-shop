@@ -113,10 +113,10 @@ function render_supplier_po(array $order, array $items, string $repName): string
         . '</div>';
 }
 
-function dispatch_mail(string $to, string $subject, string $htmlBody): void
+function dispatch_mail(string $to, string $subject, string $htmlBody, ?string $fromOverride = null, ?string $fromNameOverride = null): void
 {
-    $from     = (string)env('MAIL_FROM', 'orders@pconestop.co.za');
-    $fromName = (string)env('MAIL_FROM_NAME', APP_NAME);
+    $from     = $fromOverride ?? (string)env('MAIL_FROM', 'orders@pconestop.co.za');
+    $fromName = $fromNameOverride ?? (string)env('MAIL_FROM_NAME', APP_NAME);
     $enabled  = (bool)env('MAIL_ENABLED', false);
 
     if (!$enabled) {

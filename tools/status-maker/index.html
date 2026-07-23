@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCOS Status Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+    :root { --navy:#0B1F33; --blue:#0E63D8; --green:#12A15E; --amber:#E8850C; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#081521; color:#e7eefb; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+    .top { position:sticky; top:0; z-index:10; background:#0a1826; border-bottom:1px solid #1c3b57; padding:14px 18px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+    .top h1 { font-size:1rem; margin:0 12px 0 0; letter-spacing:.02em; }
+    .top button, .top label { font-size:.85rem; }
+    .btn { border:0; border-radius:9px; padding:10px 16px; font-weight:600; color:#fff; background:var(--blue); cursor:pointer; font-family:inherit; }
+    .btn.alt { background:#213a55; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .switch { display:flex; align-items:center; gap:7px; color:#a9bfd9; cursor:pointer; user-select:none; }
+    .status { color:#8fa6c4; font-size:.82rem; margin-left:auto; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill, 216px); gap:22px; padding:22px; justify-content:center; }
+    .cell { width:216px; }
+    .cell .frame { width:216px; height:384px; border-radius:10px; overflow:hidden; background:#000; box-shadow:0 6px 20px rgba(0,0,0,.5); }
+    .cell .frame .promo-card { transform:scale(.2); transform-origin:top left; }
+    .cell .meta { display:flex; gap:8px; margin-top:8px; align-items:center; }
+    .cell .meta .lbl { font-size:.72rem; color:#8fa6c4; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cell .dl { border:0; border-radius:8px; padding:8px 10px; font-size:.76rem; font-weight:600; color:#fff; background:var(--green); cursor:pointer; font-family:inherit; }
+
+    /* Offscreen full-size render stage */
+    #stage { position:fixed; left:-99999px; top:0; }
+
+    /* ---------- 1080x1920 CARD ---------- */
+    .promo-card {
+        width:1080px; height:1920px; position:relative; overflow:hidden;
+        background:
+            radial-gradient(1100px 700px at 88% -6%, rgba(14,99,216,.42), rgba(14,99,216,0) 60%),
+            repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 96px),
+            repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 96px),
+            #0B1F33;
+        color:#eaf2ff;
+        font-family:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        display:flex; flex-direction:column; padding:64px;
+    }
+    .pc-head { display:flex; align-items:center; justify-content:space-between; }
+    .pc-logo-pill { background:#fff; border-radius:999px; padding:16px 26px; display:flex; align-items:center; }
+    .pc-logo-pill img { height:56px; width:auto; display:block; }
+    .pc-tag { font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; font-size:30px; font-weight:700;
+              letter-spacing:.06em; text-transform:uppercase; padding:16px 26px; border-radius:999px; background:rgba(11,31,51,.4); }
+    .pc-tag.deal { color:var(--amber); border:3px solid var(--amber); }
+    .pc-tag.arrival { color:#5b9bff; border:3px solid var(--blue); }
+
+    .pc-panel { margin-top:40px; height:730px; background:#fff; border-radius:36px; position:relative;
+                display:flex; align-items:center; justify-content:center; padding:44px; }
+    .pc-panel img.photo { max-width:100%; max-height:100%; object-fit:contain; }
+    .pc-burst { position:absolute; top:-46px; right:-30px; width:250px; height:250px; border-radius:50%;
+                background:var(--amber); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+                transform:rotate(8deg); box-shadow:0 14px 30px rgba(0,0,0,.28); }
+    .pc-burst .big { font-size:88px; font-weight:700; line-height:.9; letter-spacing:-.02em; }
+    .pc-burst .sml { font-size:40px; font-weight:700; letter-spacing:.14em; }
+
+    .pc-brand { margin-top:44px; font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+                font-size:30px; letter-spacing:.16em; text-transform:uppercase; color:#7f9bbd; min-height:30px; }
+    .pc-name { margin-top:14px; font-size:64px; font-weight:700; line-height:1.06; letter-spacing:-.01em;
+               display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+    .pc-price { margin-top:36px; display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; }
+    .pc-now { font-size:124px; font-weight:700; line-height:.9; letter-spacing:-.02em; }
+    .pc-was { font-size:52px; font-weight:500; color:#7f9bbd; text-decoration:line-through; padding-bottom:14px; }
+    .pc-save { margin-top:26px; display:inline-block; background:var(--green); color:#fff; font-weight:700;
+               font-size:34px; padding:14px 30px; border-radius:999px; }
+
+    .pc-stock { margin-top:32px; font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+                font-size:36px; font-weight:700; letter-spacing:.04em; }
+    .pc-stock.in { color:var(--green); }
+    .pc-stock.low { color:var(--amber); }
+
+    .pc-spacer { flex:1; }
+    .pc-robot { text-align:center; }
+    .pc-robot img { height:150px; width:auto; }
+    .pc-foot { margin-top:22px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+    .pc-site { background:#fff; color:#0B1F33; font-weight:700; font-size:38px; padding:16px 34px; border-radius:999px; }
+    .pc-foot-sub { font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; font-size:27px; color:#9fb6d4; }
+    .pc-fine { font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; font-size:22px; color:#5f7a9c; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div class="top">
+    <h1>🖼️ PCOS Status Maker</h1>
+    <button class="btn" id="dl-all" disabled>⬇ Download all</button>
+    <button class="btn alt" id="reload">↻ Reload data</button>
+    <label class="switch"><input type="checkbox" id="robot-toggle" checked> Robot mascot</label>
+    <span class="status" id="status">Loading…</span>
+</div>
+<div class="grid" id="grid"></div>
+<div id="stage"></div>
+
+<script src="lib/html2canvas.min.js"></script>
+<script>
+(function () {
+    'use strict';
+    var CARD_COUNT = 10;
+    var grid = document.getElementById('grid');
+    var stage = document.getElementById('stage');
+    var statusEl = document.getElementById('status');
+    var dlAllBtn = document.getElementById('dl-all');
+    var robotToggle = document.getElementById('robot-toggle');
+    var cards = [];
+
+    function setStatus(t) { statusEl.textContent = t; }
+
+    function zar(n) {
+        var s = (Math.round(n * 100) / 100).toFixed(2).split('.');
+        s[0] = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        return 'R' + s.join('.');
+    }
+    function proxy(url) { return '/api/img-proxy.php?url=' + encodeURIComponent(url); }
+    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+    function buildCard(item, index) {
+        var isDeal = item.type === 'deal';
+        var nowStr = zar(item.price_now);
+        // Shrink the huge now-price if the string is long.
+        var nowSize = nowStr.length <= 9 ? 124 : (nowStr.length <= 12 ? 100 : 82);
+
+        var card = document.createElement('div');
+        card.className = 'promo-card';
+        card.innerHTML =
+            '<div class="pc-head">' +
+                '<div class="pc-logo-pill"><img src="/assets/img/logo.png" alt="PC One Stop"></div>' +
+                '<div class="pc-tag ' + (isDeal ? 'deal' : 'arrival') + '">' + (isDeal ? '🔥 HOT DEAL' : '⚡ JUST LANDED') + '</div>' +
+            '</div>' +
+            '<div class="pc-panel">' +
+                '<img class="photo" crossorigin="anonymous" src="' + proxy(item.image) + '" alt="">' +
+                (isDeal ? '<div class="pc-burst"><span class="big">-' + item.save_pct + '%</span><span class="sml">OFF</span></div>' : '') +
+            '</div>' +
+            '<div class="pc-brand">' + esc(item.brand || '') + '</div>' +
+            '<div class="pc-name">' + esc(item.name) + '</div>' +
+            '<div class="pc-price">' +
+                '<span class="pc-now" style="font-size:' + nowSize + 'px">' + esc(nowStr) + '</span>' +
+                (item.price_was ? '<span class="pc-was">' + esc(zar(item.price_was)) + '</span>' : '') +
+            '</div>' +
+            (isDeal ? '<div><span class="pc-save">You save ' + esc(zar(item.save_amount)) + '</span></div>' : '') +
+            '<div class="pc-stock ' + (item.stock === 'Low stock' ? 'low' : 'in') + '">' +
+                (item.stock === 'Low stock' ? '● LOW STOCK — BE QUICK' : '● IN STOCK') + '</div>' +
+            '<div class="pc-spacer"></div>' +
+            '<div class="pc-robot"><img src="/assets/img/robot.png" alt=""></div>' +
+            '<div class="pc-foot">' +
+                '<div class="pc-site">shop.pconestop.co.za</div>' +
+                '<div class="pc-foot-sub">🚚 nationwide courier · yoco secure checkout</div>' +
+                '<div class="pc-fine">Prices incl. VAT · E&amp;OE · while stocks last</div>' +
+            '</div>';
+        return card;
+    }
+
+    function filename(index, item) {
+        var num = String(index + 1).padStart(2, '0');
+        return 'pcos-status-' + num + '-' + item.slug + '.png';
+    }
+
+    function applyRobot() {
+        var show = robotToggle.checked;
+        document.querySelectorAll('.pc-robot').forEach(function (r) { r.style.display = show ? '' : 'none'; });
+    }
+
+    // Capture a card at true 1080x1920 via an offscreen clone.
+    function capture(card) {
+        var clone = card.cloneNode(true);
+        stage.innerHTML = '';
+        stage.appendChild(clone);
+        return (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve())
+            .then(function () {
+                return html2canvas(clone, {
+                    width: 1080, height: 1920, windowWidth: 1080, windowHeight: 1920,
+                    scale: 1, backgroundColor: null, useCORS: true, logging: false
+                });
+            })
+            .then(function (canvas) { stage.innerHTML = ''; return canvas; });
+    }
+
+    function downloadCanvas(canvas, name) {
+        return new Promise(function (resolve) {
+            canvas.toBlob(function (blob) {
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = name;
+                document.body.appendChild(a); a.click();
+                setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); resolve(); }, 100);
+            }, 'image/png');
+        });
+    }
+
+    function downloadOne(entry) {
+        entry.dl.disabled = true; entry.dl.textContent = '…';
+        return capture(entry.card).then(function (c) { return downloadCanvas(c, entry.name); })
+            .then(function () { entry.dl.textContent = '✓'; setTimeout(function () { entry.dl.textContent = '⬇ PNG'; entry.dl.disabled = false; }, 1200); })
+            .catch(function (e) { entry.dl.textContent = '⚠'; entry.dl.disabled = false; console.error(e); });
+    }
+
+    function downloadAll() {
+        dlAllBtn.disabled = true;
+        var i = 0;
+        function next() {
+            if (i >= cards.length) { dlAllBtn.disabled = false; setStatus('Downloaded ' + cards.length + ' cards.'); return; }
+            setStatus('Rendering ' + (i + 1) + ' / ' + cards.length + '…');
+            downloadOne(cards[i]).then(function () { i++; setTimeout(next, 250); });
+        }
+        next();
+    }
+
+    function render(list) {
+        grid.innerHTML = '';
+        cards = [];
+        list.forEach(function (item, index) {
+            var card = buildCard(item, index);
+            var name = filename(index, item);
+
+            var cell = document.createElement('div');
+            cell.className = 'cell';
+            var frame = document.createElement('div');
+            frame.className = 'frame';
+            frame.appendChild(card);
+            var meta = document.createElement('div');
+            meta.className = 'meta';
+            var lbl = document.createElement('span');
+            lbl.className = 'lbl';
+            lbl.textContent = String(index + 1).padStart(2, '0') + '  ' + (item.type === 'deal' ? item.save_pct + '% off' : 'new') + ' · ' + item.name;
+            var dl = document.createElement('button');
+            dl.className = 'dl';
+            dl.textContent = '⬇ PNG';
+            meta.appendChild(lbl); meta.appendChild(dl);
+            cell.appendChild(frame); cell.appendChild(meta);
+            grid.appendChild(cell);
+
+            var entry = { card: card, name: name, dl: dl };
+            dl.addEventListener('click', function () { downloadOne(entry); });
+            cards.push(entry);
+        });
+        applyRobot();
+        dlAllBtn.disabled = list.length === 0;
+        setStatus(list.length + ' cards ready.');
+    }
+
+    function load() {
+        setStatus('Loading deals…');
+        dlAllBtn.disabled = true;
+        fetch('/api/deals.json.php', { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var deals = data.deals || [];
+                var arrivals = data.arrivals || [];
+                var list = deals.slice();
+                for (var i = 0; i < arrivals.length && list.length < CARD_COUNT; i++) list.push(arrivals[i]);
+                list = list.slice(0, CARD_COUNT);
+                if (!list.length) { setStatus('No deals or arrivals found.'); grid.innerHTML = '<p style="color:#8fa6c4;padding:30px">Nothing to show.</p>'; return; }
+                render(list);
+            })
+            .catch(function (e) { setStatus('Failed to load /api/deals.json.php — ' + e.message); console.error(e); });
+    }
+
+    robotToggle.addEventListener('change', applyRobot);
+    dlAllBtn.addEventListener('click', downloadAll);
+    document.getElementById('reload').addEventListener('click', load);
+    load();
+})();
+</script>
+</body>
+</html>
