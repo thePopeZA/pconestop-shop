@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 require_once BASE_PATH . '/includes/shop.php';
 
+// Only promote deals on real products, not cheap accessories with inflated
+// RRPs. Deals are ranked by actual Rand saved (below RRP), highest first.
+const PROMO_MIN_PRICE = 750.00;
+
 /** Shape one product row into the public promo item structure. */
 function promo_item(array $p, bool $isDeal): array
 {
@@ -47,13 +51,16 @@ function promo_item(array $p, bool $isDeal): array
  */
 function promo_feed(int $arrivalsLimit = 12): array
 {
-    $dealRows = db()->query(
+    $stmt = db()->prepare(
         "SELECT * FROM products
          WHERE active = 1 AND stock_qty > 0
            AND rrp IS NOT NULL AND rrp > price
+           AND price >= ?
            AND image_url IS NOT NULL AND image_url <> ''
-         ORDER BY (rrp - price) / rrp DESC, (rrp - price) DESC, name ASC"
-    )->fetchAll();
+         ORDER BY (rrp - price) DESC, (rrp - price) / rrp DESC, name ASC"
+    );
+    $stmt->execute([PROMO_MIN_PRICE]);
+    $dealRows = $stmt->fetchAll();
 
     $deals = [];
     $inDeals = [];
@@ -100,13 +107,14 @@ function promo_card_list(array $feed, int $count = 10): array
     return array_slice($cards, 0, $count);
 }
 
-/** WhatsApp caption text for one promo item. */
+/** WhatsApp caption text for one promo item. Deals are framed vs RRP (honest —
+ *  we never sold at RRP, so we say "RRP", not "was"). */
 function promo_caption(array $it): string
 {
     $url = $it['url'];
     if ($it['type'] === 'deal') {
-        return "🔥 {$it['save_pct']}% OFF! {$it['name']} — was "
-            . money((float)$it['price_was']) . ', now ' . money((float)$it['price_now']) . ".\n"
+        return "🔥 SAVE " . money((float)$it['save_amount']) . "! {$it['name']} — now "
+            . money((float)$it['price_now']) . ' (RRP ' . money((float)$it['price_was']) . ").\n"
             . "Order: {$url}\n"
             . '🚚 Nationwide delivery · Yoco secure';
     }

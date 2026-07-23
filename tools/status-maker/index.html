@@ -55,9 +55,9 @@
     .pc-panel img.photo { max-width:100%; max-height:100%; object-fit:contain; }
     .pc-burst { position:absolute; top:-46px; right:-30px; width:250px; height:250px; border-radius:50%;
                 background:var(--amber); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
-                transform:rotate(8deg); box-shadow:0 14px 30px rgba(0,0,0,.28); }
-    .pc-burst .big { font-size:88px; font-weight:700; line-height:.9; letter-spacing:-.02em; }
-    .pc-burst .sml { font-size:40px; font-weight:700; letter-spacing:.14em; }
+                transform:rotate(8deg); box-shadow:0 14px 30px rgba(0,0,0,.28); text-align:center; }
+    .pc-burst .sml { font-size:34px; font-weight:700; letter-spacing:.16em; }
+    .pc-burst .big { font-size:60px; font-weight:700; line-height:.92; letter-spacing:-.02em; margin-top:2px; }
 
     .pc-brand { margin-top:44px; font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
                 font-size:30px; letter-spacing:.16em; text-transform:uppercase; color:#7f9bbd; min-height:30px; }
@@ -114,6 +114,9 @@
         s[0] = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
         return 'R' + s.join('.');
     }
+    function zarWhole(n) {
+        return 'R' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
     function proxy(url) { return '/api/img-proxy.php?url=' + encodeURIComponent(url); }
     function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
@@ -132,15 +135,16 @@
             '</div>' +
             '<div class="pc-panel">' +
                 '<img class="photo" crossorigin="anonymous" src="' + proxy(item.image) + '" alt="">' +
-                (isDeal ? '<div class="pc-burst"><span class="big">-' + item.save_pct + '%</span><span class="sml">OFF</span></div>' : '') +
+                (isDeal ? '<div class="pc-burst"><span class="sml">SAVE</span><span class="big" style="font-size:' +
+                    (zarWhole(item.save_amount).length > 7 ? 52 : 64) + 'px">' + esc(zarWhole(item.save_amount)) + '</span></div>' : '') +
             '</div>' +
             '<div class="pc-brand">' + esc(item.brand || '') + '</div>' +
             '<div class="pc-name">' + esc(item.name) + '</div>' +
             '<div class="pc-price">' +
                 '<span class="pc-now" style="font-size:' + nowSize + 'px">' + esc(nowStr) + '</span>' +
-                (item.price_was ? '<span class="pc-was">' + esc(zar(item.price_was)) + '</span>' : '') +
+                (item.price_was ? '<span class="pc-was">RRP ' + esc(zar(item.price_was)) + '</span>' : '') +
             '</div>' +
-            (isDeal ? '<div><span class="pc-save">You save ' + esc(zar(item.save_amount)) + '</span></div>' : '') +
+            (isDeal ? '<div><span class="pc-save">' + item.save_pct + '% below RRP</span></div>' : '') +
             '<div class="pc-stock ' + (item.stock === 'Low stock' ? 'low' : 'in') + '">' +
                 (item.stock === 'Low stock' ? '● LOW STOCK — BE QUICK' : '● IN STOCK') + '</div>' +
             '<div class="pc-spacer"></div>' +
@@ -224,7 +228,7 @@
             meta.className = 'meta';
             var lbl = document.createElement('span');
             lbl.className = 'lbl';
-            lbl.textContent = String(index + 1).padStart(2, '0') + '  ' + (item.type === 'deal' ? item.save_pct + '% off' : 'new') + ' · ' + item.name;
+            lbl.textContent = String(index + 1).padStart(2, '0') + '  ' + (item.type === 'deal' ? 'save ' + zarWhole(item.save_amount) : 'new') + ' · ' + item.name;
             var dl = document.createElement('button');
             dl.className = 'dl';
             dl.textContent = '⬇ PNG';
