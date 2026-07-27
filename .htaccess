@@ -7,7 +7,11 @@
     Require all denied
 </FilesMatch>
 
-RedirectMatch 403 ^/?(config|includes|lib|cron|database|storage)(/.*)?$
+RedirectMatch 403 ^/?(config|includes|lib|database|storage)(/.*)?$
+# Cron scripts are CLI-only and stay web-blocked — EXCEPT the daily promo mailer,
+# which has a key-protected manual web trigger for testing. (fetch_feed.php and
+# commission_report.php also self-guard with a PHP_SAPI==='cli' check.)
+RedirectMatch 403 ^/?cron/(?!daily-promo-email\.php$).*$
 
 # Pretty error pages
 ErrorDocument 404 /404.php
