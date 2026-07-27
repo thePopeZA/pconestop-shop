@@ -22,6 +22,13 @@ const PROMO_MIN_SAVING = 100.00;
 // maker / endpoint run on localhost — captions get frozen for public posting.
 const PROMO_PUBLIC_BASE = 'https://shop.pconestop.co.za';
 
+// Human-curated daily flow.
+const PROMO_PICKER_DIR = 'pick-da5c1665';                      // secret picker folder
+const PROMO_PICKER_SECRET = 'b7e0d33daf83d5592e01b3e312f2b13a'; // signs picker publish tokens
+// Recipients for BOTH promo emails (morning picker invite + pack-ready).
+// TESTING value below — switch to ['shop@pconestop.co.za'] for production.
+const PROMO_RECIPIENTS = ['jurgsw@gmail.com'];
+
 /**
  * A product's top-level (primary) category display name — the first segment of
  * its category_path ("Computers > Mini PCs > Barebone systems" -> "Computers").
@@ -66,15 +73,11 @@ function promo_item(array $p, bool $isDeal): array
 }
 
 /**
- * Build the promo feed.
- * - deals: every active, in-stock product priced below RRP, with an image,
- *   sorted by discount percentage (highest first).
- * - arrivals: newest in-stock products (homepage "Just arrived" source),
- *   excluding anything already in deals.
- *
- * @return array{deals: array<int,array>, arrivals: array<int,array>}
+ * Raw qualifying deal rows (active, in stock, priced below RRP, with an image),
+ * ranked by Rand saving desc. $minPrice / $minSaving are the only filters —
+ * one place so the auto-feed and the human picker share identical logic.
  */
-function promo_feed(int $arrivalsLimit = 12): array
+function promo_query_deals(float $minPrice, float $minSaving): array
 {
     $stmt = db()->prepare(
         "SELECT * FROM products
@@ -85,8 +88,35 @@ function promo_feed(int $arrivalsLimit = 12): array
            AND image_url IS NOT NULL AND image_url <> ''
          ORDER BY (rrp - price) DESC, (rrp - price) / rrp DESC, name ASC"
     );
-    $stmt->execute([PROMO_MIN_PRICE, PROMO_MIN_SAVING]);
-    $dealRows = $stmt->fetchAll();
+    $stmt->execute([$minPrice, $minSaving]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * EVERY qualifying deal, no price floor and no minimum saving — the human is
+ * the filter in the picker flow. Returns promo items, Rand-saving desc.
+ */
+function promo_all_deals(): array
+{
+    $out = [];
+    foreach (promo_query_deals(0.0, 0.0) as $p) {
+        $out[] = promo_item($p, true);
+    }
+    return $out;
+}
+
+/**
+ * Build the promo feed.
+ * - deals: every active, in-stock product priced below RRP, with an image,
+ *   sorted by discount percentage (highest first).
+ * - arrivals: newest in-stock products (homepage "Just arrived" source),
+ *   excluding anything already in deals.
+ *
+ * @return array{deals: array<int,array>, arrivals: array<int,array>}
+ */
+function promo_feed(int $arrivalsLimit = 12): array
+{
+    $dealRows = promo_query_deals(PROMO_MIN_PRICE, PROMO_MIN_SAVING);
 
     $deals = [];
     $inDeals = [];
@@ -199,3 +229,102 @@ function promo_caption(array $it): string
         . "Order: {$url}\n"
         . '🚚 Nationwide delivery · Yoco secure';
 }
+
+/* ---------------------------------------------------------------------------
+ * Picker publish tokens + shared promo email (both used by the daily flow).
+ * ------------------------------------------------------------------------- */
+
+/** Signed, expiring token embedded in the picker page and required by publish. */
+function promo_make_token(int $ttlSeconds = 7200): string
+{
+    $exp = time() + $ttlSeconds;
+    return $exp . '.' . hash_hmac('sha256', (string)$exp, PROMO_PICKER_SECRET);
+}
+
+function promo_check_token(string $token): bool
+{
+    $parts = explode('.', $token, 2);
+    if (count($parts) !== 2) {
+        return false;
+    }
+    [$exp, $sig] = $parts;
+    if (!ctype_digit($exp) || (int)$exp < time()) {
+        return false;
+    }
+    return hash_equals(hash_hmac('sha256', $exp, PROMO_PICKER_SECRET), $sig);
+}
+
+/** Public URL of the secret picker page. */
+function promo_picker_url(): string
+{
+    return PROMO_PUBLIC_BASE . '/' . PROMO_PICKER_DIR . '/';
+}
+
+/**
+ * Are we running on the real production host? Real promo emails only send here;
+ * everywhere else (localhost, staging, CLI off-prod) is a dry-run. Uses the
+ * request host when available, else falls back to APP_URL (for CLI/cron).
+ */
+function promo_is_prod(): bool
+{
+    $host = strtolower(explode(':', (string)($_SERVER['HTTP_HOST'] ?? ''))[0]);
+    if ($host === '') {
+        $host = strtolower((string)parse_url((string)env('APP_URL', ''), PHP_URL_HOST));
+    }
+    return $host === 'shop.pconestop.co.za';
+}
+
+/**
+ * Send a promo email to PROMO_RECIPIENTS, or dry-run off prod.
+ * Returns a status array (also suitable for printing).
+ */
+function promo_send(string $subject, string $htmlBody, string $plainSummary): array
+{
+    if (!promo_is_prod()) {
+        return [
+            'sent' => false, 'dry_run' => true,
+            'recipients' => PROMO_RECIPIENTS, 'subject' => $subject, 'summary' => $plainSummary,
+        ];
+    }
+    require_once BASE_PATH . '/includes/mailer.php';
+    $from = 'no-reply@pconestop.co.za';
+    $fromName = 'PC One Stop Promos';
+    $n = 0;
+    foreach (PROMO_RECIPIENTS as $to) {
+        $to = trim((string)$to);
+        if ($to !== '' && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            dispatch_mail($to, $subject, $htmlBody, $from, $fromName);
+            $n++;
+        }
+    }
+    return ['sent' => true, 'dry_run' => false, 'recipients' => PROMO_RECIPIENTS, 'dispatched' => $n, 'subject' => $subject];
+}
+
+/** Morning "pick today's deals" invite (link to the picker). */
+function promo_send_picker_invite(): array
+{
+    $url = promo_picker_url();
+    $subject = "Today's deals are in — pick 10 to post";
+    $body = '<div style="font-family:Arial,sans-serif;color:#1a2233;max-width:520px">'
+        . '<h2 style="color:#0E63D8;margin-bottom:6px">🛒 Today\'s deals are ready</h2>'
+        . '<p>Open the picker, choose the 10 products you want to post today, and tap <strong>Generate pack</strong>. '
+        . 'The cards publish automatically and the team gets the gallery link.</p>'
+        . '<p style="font-size:1.05em">👉 <a href="' . e($url) . '">' . e($url) . '</a></p>'
+        . '<p style="color:#999;font-size:12px">Automated 07:00 notice from shop.pconestop.co.za</p></div>';
+    return promo_send($subject, $body, 'Pick today\'s 10 deals: ' . $url);
+}
+
+/** Pack-ready notice (link to the gallery) after a pack is published. */
+function promo_send_pack_ready(int $count): array
+{
+    $url = PROMO_PUBLIC_BASE . '/promo-82f02098/';
+    $subject = "PCOS promo cards ready — {$count} to post";
+    $body = '<div style="font-family:Arial,sans-serif;color:#1a2233;max-width:520px">'
+        . '<h2 style="color:#12A15E;margin-bottom:6px">🔥 New promo pack is live</h2>'
+        . '<p><strong>' . (int)$count . '</strong> cards are ready to post to WhatsApp status.</p>'
+        . '<p style="font-size:1.05em">👉 <a href="' . e($url) . '">' . e($url) . '</a></p>'
+        . '<p style="color:#555">Open on your phone, tap <strong>Share</strong> on each card. Posted cards dim automatically.</p>'
+        . '<p style="color:#999;font-size:12px">Automated notice from shop.pconestop.co.za</p></div>';
+    return promo_send($subject, $body, "{$count} promo cards ready: {$url}");
+}
+

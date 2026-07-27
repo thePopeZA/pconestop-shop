@@ -1,5 +1,10 @@
 <#
-  refresh-promo.ps1
+  refresh-promo.ps1  — DEPRECATED.
+  The promo flow no longer touches git: packs are published server-side from the
+  daily picker (pick-*/) → publish.php, and images/captions are gitignored. This
+  script (download the pack, commit it, cPanel-pull) is kept only as a manual
+  break-glass fallback alongside tools/status-maker/. Prefer the picker.
+
   Publishes the promo status images into the secret gallery and commits them.
 
     1. Wipes  promo-82f02098/img/  (keeps .gitkeep)

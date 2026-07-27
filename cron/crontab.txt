@@ -13,6 +13,11 @@
 # Partner commission report — 06:00 on the 1st of every month (for the month just ended)
 0 6 1 * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/commission_report.php >> /home/pconeurd/shop.pconestop.co.za/storage/logs/commission.log 2>&1
 
+# Daily promo picker invite — runs HOURLY; the script only sends once, at/after
+# 07:00 Africa/Johannesburg (it forces SAST internally + a once-a-day lock), so
+# this is correct regardless of the server's timezone.
+0 * * * * /usr/local/bin/php /home/pconeurd/shop.pconestop.co.za/cron/daily-promo-email.php >> /home/pconeurd/shop.pconestop.co.za/storage/logs/promo-email.log 2>&1
+
 # ------------------------------------------------------------
 # Notes:
 #  - Find your PHP CLI path in cPanel → "Select PHP Version" or run `which php` via SSH.
