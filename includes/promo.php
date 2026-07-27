@@ -26,8 +26,7 @@ const PROMO_PUBLIC_BASE = 'https://shop.pconestop.co.za';
 const PROMO_PICKER_DIR = 'pick-da5c1665';                      // secret picker folder
 const PROMO_PICKER_SECRET = 'b7e0d33daf83d5592e01b3e312f2b13a'; // signs picker publish tokens
 // Recipients for BOTH promo emails (morning picker invite + pack-ready).
-// TESTING value below — switch to ['shop@pconestop.co.za'] for production.
-const PROMO_RECIPIENTS = ['jurgsw@gmail.com'];
+const PROMO_RECIPIENTS = ['shop@pconestop.co.za'];
 
 /**
  * A product's top-level (primary) category display name — the first segment of
