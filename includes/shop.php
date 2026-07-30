@@ -345,8 +345,12 @@ function render_card(array $p): string
     $onPromo = product_on_promo($p);
     ob_start(); ?>
     <div class="card<?= $onPromo ? ' card-promo' : '' ?>">
-        <?php if ($onPromo): ?><span class="badge-onpromo">🏷️ On Promo</span><?php endif; ?>
-        <?php if ($save > 0): ?><span class="badge-promo">SAVE <?= money($save) ?></span><?php endif; ?>
+        <?php if ($onPromo || $save > 0): ?>
+        <div class="card-badges">
+            <?php if ($onPromo): ?><span class="badge-onpromo">🏷️ On Promo</span><?php endif; ?>
+            <?php if ($save > 0): ?><span class="badge-promo">SAVE <?= money($save) ?></span><?php endif; ?>
+        </div>
+        <?php endif; ?>
         <a class="thumb" href="<?= e(product_url($p)) ?>">
             <img src="<?= e($img) ?>" alt="<?= e($p['name']) ?>" loading="lazy"
                  onerror="this.onerror=null;this.src='<?= e(asset('img/placeholder.svg')) ?>'">
