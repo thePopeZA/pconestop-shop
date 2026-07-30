@@ -27,9 +27,13 @@ $related   = related_products($product, 5);
 // Open Graph so a shared product link unfurls into a rich WhatsApp preview card.
 $ogType  = 'product';
 $ogUrl   = rtrim(APP_URL, '/') . '/product.php?slug=' . rawurlencode($product['slug']);
-$ogImage = $mainImg;
-if ($ogImage !== '' && !preg_match('#^https?://#i', $ogImage)) {
-    $ogImage = rtrim(APP_URL, '/') . '/' . ltrim($ogImage, '/');
+// og:image must be a RASTER image the WhatsApp/Facebook crawler can render — never
+// the SVG placeholder (unsupported → no preview card). Use the real product photo
+// when present, else the logo PNG.
+if (!empty($product['image_url']) && filter_var($product['image_url'], FILTER_VALIDATE_URL)) {
+    $ogImage = $product['image_url'];
+} else {
+    $ogImage = rtrim(APP_URL, '/') . '/assets/img/logo.png';
 }
 $ogTitle = ($onPromo ? '🏷️ On Promo · ' : '') . $product['name'];
 $priceLine = 'R' . number_format((float)$product['price'], 0);
