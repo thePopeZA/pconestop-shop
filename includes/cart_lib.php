@@ -98,7 +98,7 @@ function cart_totals(array $items): array
     $costTotal = 0.0; // supplier (Syntech) cost ex VAT — decides free shipping
     foreach ($items as $it) {
         $subtotal  += $it['line_total'];
-        $costTotal += (float)$it['product']['cost_price'] * $it['qty'];
+        $costTotal += effective_cost($it['product']) * $it['qty'];
     }
     $shipping = calc_shipping($costTotal);
     $total    = $subtotal + $shipping;

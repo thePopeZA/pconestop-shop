@@ -65,6 +65,62 @@ function calc_sell_price(float $cost, ?float $rrpIncl = null): float
     return round($cost * MARKUP_MULTIPLIER * VAT_MULTIPLIER, 2);
 }
 
+/* ---------- Syntech promotions ----------
+ * Syntech flags 272-odd products "on promo" for a window, dropping OUR dealer
+ * cost (promo_price). During that window we sell at promo cost + flat markup
+ * (owner rule) and pay/report the true promo cost. Everything reverts by itself
+ * when the window ends — pricing is gated on the date, not on a manual toggle.
+ */
+
+/**
+ * Is a promo window active today? Uses the app timezone (Africa/Johannesburg,
+ * forced in config) so it never drifts on a foreign-TZ host. A blank start/end
+ * is treated as open-ended.
+ */
+function promo_window_active(?string $starts, ?string $ends): bool
+{
+    $today = date('Y-m-d');
+    if ($starts !== null && $starts !== '' && $today < $starts) return false;
+    if ($ends   !== null && $ends   !== '' && $today > $ends)   return false;
+    return true;
+}
+
+/**
+ * Sell price for an item on a Syntech promo: promo dealer cost + flat markup
+ * (MARKUP_MULTIPLIER, the owner's "add 25%" rule), incl VAT, never above RRP.
+ */
+function calc_promo_sell_price(float $promoCost, ?float $rrpIncl = null): float
+{
+    if ($promoCost <= 0) {
+        return 0.0;
+    }
+    $sell = round($promoCost * MARKUP_MULTIPLIER * VAT_MULTIPLIER, 2);
+    if ($rrpIncl !== null && $rrpIncl > 0 && $sell > $rrpIncl) {
+        $sell = round($rrpIncl, 2);
+    }
+    return $sell;
+}
+
+/** True when a product row is inside an active Syntech promo window. */
+function product_on_promo(array $p): bool
+{
+    $promo = isset($p['promo_price']) ? (float)$p['promo_price'] : 0.0;
+    if ($promo <= 0) {
+        return false;
+    }
+    return promo_window_active($p['promo_starts'] ?? null, $p['promo_ends'] ?? null);
+}
+
+/**
+ * Effective dealer cost ex VAT — the promo cost while a promo runs, else the
+ * regular feed cost. This is the number the PO, commission and free-shipping
+ * threshold must use, so it lives in one place.
+ */
+function effective_cost(array $p): float
+{
+    return product_on_promo($p) ? (float)$p['promo_price'] : (float)($p['cost_price'] ?? 0);
+}
+
 /**
  * Courier fee, decided on the order's SUPPLIER COST (ex VAT), not the customer
  * subtotal: free when Syntech cost > SHIPPING_FREE_COST_OVER, else the flat

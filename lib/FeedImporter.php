@@ -33,6 +33,8 @@ class FeedImporter
         'price'       => ['price', 'dealerprice', 'dealer_price', 'cost', 'costprice', 'cost_price', 'baseprice', 'priceexcl', 'price_excl'],
         'rrp'         => ['rrp_incl', 'rrp', 'recommended_retail', 'retail', 'rrp_excl', 'srp'],
         'promo'       => ['promo_price', 'promoprice', 'sale_price', 'special'],
+        'promo_starts'=> ['promo_starts', 'promo_start', 'promostart', 'sale_start', 'special_from'],
+        'promo_ends'  => ['promo_ends', 'promo_end', 'promoend', 'sale_end', 'special_to'],
         'brand'       => ['brand', 'make', 'vendor'],
         'manufacturer'=> ['manufacturer', 'mfr'],
         'category'    => ['categorytree', 'category_tree', 'categories', 'category', 'categorypath', 'category_path', 'cat', 'producttype', 'product_type', 'department'],
@@ -64,6 +66,7 @@ class FeedImporter
     {
         $this->startLog($isFull ? 'full' : 'update');
         try {
+            $this->ensurePromoColumns();
             $file = $this->download($url, $type);
             switch (strtolower($type)) {
                 case 'csv':  $this->importCsv($file); break;
@@ -83,6 +86,25 @@ class FeedImporter
             throw $e;
         }
         return $this->stats;
+    }
+
+    /**
+     * Add the promo columns if this DB predates them. Idempotent (IF NOT EXISTS),
+     * so it self-heals prod on the first import after deploy.
+     */
+    private function ensurePromoColumns(): void
+    {
+        try {
+            $this->db->exec(
+                'ALTER TABLE products
+                   ADD COLUMN IF NOT EXISTS promo_price  DECIMAL(12,2) DEFAULT NULL AFTER rrp,
+                   ADD COLUMN IF NOT EXISTS promo_starts DATE          DEFAULT NULL AFTER promo_price,
+                   ADD COLUMN IF NOT EXISTS promo_ends   DATE          DEFAULT NULL AFTER promo_starts'
+            );
+        } catch (Throwable $e) {
+            // Non-fatal: older MariaDB without IF NOT EXISTS will already have run
+            // this once; a genuine failure surfaces in the import log instead.
+        }
     }
 
     /* ---------------- Download ---------------- */
@@ -368,7 +390,14 @@ class FeedImporter
         $name  = trim((string)$this->pick($rec, 'name', $sku));
         $cost  = $this->parsePrice((string)$this->pick($rec, 'price', '0'));
         $rrp   = $this->parsePrice((string)$this->pick($rec, 'rrp', '0'));
-        $sell  = calc_sell_price($cost, $rrp ?: null);
+        // Syntech promo: a discounted dealer cost for a dated window (rich feed only).
+        $promo       = $this->parsePrice((string)$this->pick($rec, 'promo', '0'));
+        $promoStarts = $this->parseDate((string)$this->pick($rec, 'promo_starts', ''));
+        $promoEnds   = $this->parseDate((string)$this->pick($rec, 'promo_ends', ''));
+        $onPromo     = $promo > 0 && promo_window_active($promoStarts, $promoEnds);
+        $sell  = $onPromo
+            ? calc_promo_sell_price($promo, $rrp ?: null)
+            : calc_sell_price($cost, $rrp ?: null);
         // Brand may appear multiple times (e.g. "Port" and "Port Designs") — keep the fullest
         // brand value, but never let the manufacturer's legal name override a real brand.
         $brand = '';
@@ -421,7 +450,7 @@ class FeedImporter
 
         $slug = slugify($name) . '-' . strtolower($sku);
 
-        $existing = $this->db->prepare('SELECT id, rrp FROM products WHERE sku = ? LIMIT 1');
+        $existing = $this->db->prepare('SELECT id, rrp, promo_price, promo_starts, promo_ends FROM products WHERE sku = ? LIMIT 1');
         $existing->execute([$sku]);
         $existingRow = $existing->fetch();
         $id = $existingRow['id'] ?? false;
@@ -429,10 +458,17 @@ class FeedImporter
         if ($id) {
             if (!$isRich) {
                 // DELTA update: refresh only pricing & stock; keep all descriptive data.
-                // If this delta row carries no RRP, price against the stored one.
-                if (!$rrp && !empty($existingRow['rrp'])) {
+                // The delta carries no promo window, so honour the promo the last full
+                // sync stored — an on-promo item keeps its promo price between full feeds.
+                $exPromo = (float)($existingRow['promo_price'] ?? 0);
+                if ($exPromo > 0 && promo_window_active($existingRow['promo_starts'] ?? null, $existingRow['promo_ends'] ?? null)) {
+                    $sell = calc_promo_sell_price($exPromo, ($rrp ?: (float)($existingRow['rrp'] ?? 0)) ?: null);
+                } elseif (!$rrp && !empty($existingRow['rrp'])) {
+                    // No promo and this delta row carries no RRP: price against the stored one.
                     $sell = calc_sell_price($cost, (float)$existingRow['rrp']);
                 }
+                // NB: cost_price stays the regular dealer cost; promo_* columns are left
+                // untouched (delta owns only price/stock).
                 $stmt = $this->db->prepare(
                     'UPDATE products SET cost_price=?, price=?, rrp=COALESCE(?, rrp),
                      stock_qty=?, stock_status=?, warehouse=?, supplier_eta=?,
@@ -448,7 +484,8 @@ class FeedImporter
             }
             $stmt = $this->db->prepare(
                 'UPDATE products SET name=?, slug=?, brand=?, category_id=?, category_path=?,
-                 description=?, short_desc=?, cost_price=?, price=?, rrp=?, stock_qty=?, stock_status=?,
+                 description=?, short_desc=?, cost_price=?, price=?, rrp=?,
+                 promo_price=?, promo_starts=?, promo_ends=?, stock_qty=?, stock_status=?,
                  warehouse=?, supplier_eta=?, image_url=COALESCE(NULLIF(?, ""), image_url),
                  image_gallery=?, product_url=?, barcode=?, weight_kg=?,
                  active=1, source="syntech", last_feed_seen=NOW()
@@ -456,7 +493,8 @@ class FeedImporter
             );
             $stmt->execute([
                 $name, $slug, $brand ?: null, $categoryId, $catPath ?: null,
-                $desc, $short ?: null, $cost, $sell, $rrp ?: null, $qty, $stockStatus,
+                $desc, $short ?: null, $cost, $sell, $rrp ?: null,
+                $promo ?: null, $promoStarts ?: null, $promoEnds ?: null, $qty, $stockStatus,
                 $warehouse ?: null, $eta ?: null, $image,
                 $gallery ? json_encode($gallery) : null, $productUrl ?: null, $barcode ?: null, $weight ?: null,
                 $id,
@@ -470,13 +508,15 @@ class FeedImporter
             $stmt = $this->db->prepare(
                 'INSERT INTO products
                  (sku, name, slug, brand, category_id, category_path, description, short_desc,
-                  cost_price, price, rrp, stock_qty, stock_status, warehouse, supplier_eta, image_url,
+                  cost_price, price, rrp, promo_price, promo_starts, promo_ends,
+                  stock_qty, stock_status, warehouse, supplier_eta, image_url,
                   image_gallery, product_url, barcode, weight_kg, active, source, last_feed_seen)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,"syntech",NOW())'
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,"syntech",NOW())'
             );
             $stmt->execute([
                 $sku, $name, $slug, $brand ?: null, $categoryId, $catPath ?: null, $desc, $short ?: null,
-                $cost, $sell, $rrp ?: null, $qty, $stockStatus, $warehouse ?: null, $eta ?: null, $image,
+                $cost, $sell, $rrp ?: null, $promo ?: null, $promoStarts ?: null, $promoEnds ?: null,
+                $qty, $stockStatus, $warehouse ?: null, $eta ?: null, $image,
                 $gallery ? json_encode($gallery) : null, $productUrl ?: null, $barcode ?: null, $weight ?: null,
             ]);
             $this->stats['added']++;
@@ -525,6 +565,17 @@ class FeedImporter
             $v = str_replace(',', '.', $v);
         }
         return (float)$v;
+    }
+
+    /** Normalise a feed date to Y-m-d, or '' if unparseable. */
+    private function parseDate(string $v): string
+    {
+        $v = trim($v);
+        if ($v === '') {
+            return '';
+        }
+        $ts = strtotime($v);
+        return $ts !== false ? date('Y-m-d', $ts) : '';
     }
 
     private function stockStatus(int $qty): string

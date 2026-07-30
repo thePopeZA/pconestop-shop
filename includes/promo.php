@@ -66,6 +66,8 @@ function promo_item(array $p, bool $isDeal): array
         'image'       => (string)($p['image_url'] ?? ''),
         'url'         => PROMO_PUBLIC_BASE . '/product.php?slug=' . rawurlencode((string)$p['slug']),
         'type'        => $isDeal ? 'deal' : 'arrival',
+        'on_promo'    => product_on_promo($p),
+        'promo_ends'  => $p['promo_ends'] ?? null,
     ];
     $item['caption'] = promo_caption($item); // frozen at publish time by the maker
     return $item;
@@ -213,20 +215,23 @@ function promo_card_list(array $feed, int $count = 10): array
     return $selected;
 }
 
-/** WhatsApp caption text for one promo item. Deals are framed vs RRP (honest —
- *  we never sold at RRP, so we say "RRP", not "was"). */
+/**
+ * WhatsApp share text for one promo item — a short hook + a "View promo" link
+ * that unfurls into a rich preview card (image, name, price) via the product
+ * page's Open Graph tags. Deliberately short: the customer reads the detail on
+ * the site, not in a long pasted caption.
+ */
 function promo_caption(array $it): string
 {
     $url = $it['url'];
     if ($it['type'] === 'deal') {
-        return "🔥 SAVE " . money((float)$it['save_amount']) . "! {$it['name']} — now "
-            . money((float)$it['price_now']) . ' (RRP ' . money((float)$it['price_was']) . ").\n"
-            . "Order: {$url}\n"
-            . '🚚 Nationwide delivery · Yoco secure';
+        $tag = !empty($it['on_promo']) ? '🏷️ ON PROMO' : '🔥 DEAL';
+        return "{$tag}: {$it['name']} — now " . money((float)$it['price_now'])
+            . ' (save ' . money((float)$it['save_amount']) . ")\n"
+            . "👉 View promo: {$url}";
     }
-    return "⚡ JUST LANDED: {$it['name']} — " . money((float)$it['price_now']) . ".\n"
-        . "Order: {$url}\n"
-        . '🚚 Nationwide delivery · Yoco secure';
+    return "⚡ JUST LANDED: {$it['name']} — " . money((float)$it['price_now']) . "\n"
+        . "👉 View: {$url}";
 }
 
 /* ---------------------------------------------------------------------------

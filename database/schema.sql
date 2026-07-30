@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS products (
     cost_price    DECIMAL(12,2) NOT NULL DEFAULT 0.00,  -- feed price (dealer cost)
     price         DECIMAL(12,2) NOT NULL DEFAULT 0.00,  -- sell price = cost * markup * vat
     rrp           DECIMAL(12,2) DEFAULT NULL,           -- supplier RRP incl VAT (for "you save")
+    promo_price   DECIMAL(12,2) DEFAULT NULL,           -- Syntech promo dealer cost ex VAT (active only within window)
+    promo_starts  DATE          DEFAULT NULL,           -- promo window start (inclusive)
+    promo_ends    DATE          DEFAULT NULL,           -- promo window end (inclusive)
     -- Stock
     stock_qty     INT NOT NULL DEFAULT 0,
     stock_status  ENUM('in_stock','low_stock','out_of_stock','backorder') NOT NULL DEFAULT 'out_of_stock',
@@ -59,6 +62,7 @@ CREATE TABLE IF NOT EXISTS products (
     KEY idx_prod_active (active),
     KEY idx_prod_brand (brand),
     KEY idx_prod_stock (stock_status),
+    KEY idx_prod_promo (promo_ends),
     FULLTEXT KEY ft_prod_search (name, brand, description)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

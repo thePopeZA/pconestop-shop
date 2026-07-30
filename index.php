@@ -5,6 +5,7 @@ require_once BASE_PATH . '/includes/shop.php';
 $pageTitle = APP_NAME;
 $activeCat = '';
 $newArrivals = homepage_products(10);
+$promos = promo_deals(10);
 $deals = promo_products(5);
 $cats = homepage_categories(8);
 
@@ -42,6 +43,13 @@ include BASE_PATH . '/includes/header.php';
         </a>
     <?php endforeach; ?>
 </div>
+
+<?php if ($promos): ?>
+<div class="section-head"><h2>🏷️ On promotion</h2><a href="<?= e(url('shop.php?promo=1')) ?>">View all →</a></div>
+<div class="product-grid">
+    <?php foreach ($promos as $p) echo render_card($p); ?>
+</div>
+<?php endif; ?>
 
 <?php if ($deals): ?>
 <div class="section-head"><h2>🔥 Hot deals</h2></div>

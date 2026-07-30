@@ -6,9 +6,10 @@ $catSlug = trim((string)($_GET['cat'] ?? ''));
 $sort    = (string)($_GET['sort'] ?? 'relevance');
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $inStock = !empty($_GET['in_stock']);
+$promoOnly = !empty($_GET['promo']);
 
 $category = $catSlug !== '' ? category_by_slug($catSlug) : null;
-$pageTitle = $category ? $category['name'] : 'All Products';
+$pageTitle = $promoOnly ? 'On Promotion' : ($category ? $category['name'] : 'All Products');
 $activeCat = $category ? $category['slug'] : 'all';
 
 $result = query_products([
@@ -17,6 +18,7 @@ $result = query_products([
     'page'          => $page,
     'per_page'      => 24,
     'in_stock_only' => $inStock,
+    'promo_only'    => $promoOnly,
 ]);
 
 // Build a query base for pagination that preserves filters.
@@ -24,6 +26,7 @@ $qs = [];
 if ($catSlug !== '') $qs['cat'] = $catSlug;
 if ($sort !== 'relevance') $qs['sort'] = $sort;
 if ($inStock) $qs['in_stock'] = 1;
+if ($promoOnly) $qs['promo'] = 1;
 $baseQuery = url('shop.php') . ($qs ? '?' . http_build_query($qs) : '');
 
 include BASE_PATH . '/includes/header.php';
@@ -68,6 +71,7 @@ include BASE_PATH . '/includes/header.php';
             <h1><?= e($pageTitle) ?> <span class="muted" style="font-size:1rem;font-weight:400">(<?= number_format($result['total']) ?>)</span></h1>
             <form method="get" style="display:flex;gap:12px;align-items:center">
                 <?php if ($catSlug !== ''): ?><input type="hidden" name="cat" value="<?= e($catSlug) ?>"><?php endif; ?>
+                <?php if ($promoOnly): ?><input type="hidden" name="promo" value="1"><?php endif; ?>
                 <label style="display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--ink-soft)">
                     <input type="checkbox" name="in_stock" value="1" <?= $inStock ? 'checked' : '' ?> onchange="this.form.submit()"> In stock only
                 </label>

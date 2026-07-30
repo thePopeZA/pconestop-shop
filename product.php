@@ -21,7 +21,22 @@ $gallery   = $product['image_gallery'] ? json_decode($product['image_gallery'], 
 $mainImg   = product_image($product['image_url']);
 $hasStock  = (int)$product['stock_qty'] > 0;
 $save      = ($product['rrp'] && $product['rrp'] > $product['price']) ? ((float)$product['rrp'] - (float)$product['price']) : 0;
+$onPromo   = product_on_promo($product);
 $related   = related_products($product, 5);
+
+// Open Graph so a shared product link unfurls into a rich WhatsApp preview card.
+$ogType  = 'product';
+$ogUrl   = rtrim(APP_URL, '/') . '/product.php?slug=' . rawurlencode($product['slug']);
+$ogImage = $mainImg;
+if ($ogImage !== '' && !preg_match('#^https?://#i', $ogImage)) {
+    $ogImage = rtrim(APP_URL, '/') . '/' . ltrim($ogImage, '/');
+}
+$ogTitle = ($onPromo ? '🏷️ On Promo · ' : '') . $product['name'];
+$priceLine = 'R' . number_format((float)$product['price'], 0);
+if ($save > 0) {
+    $priceLine .= ' (RRP R' . number_format((float)$product['rrp'], 0) . ' — save R' . number_format($save, 0) . ')';
+}
+$ogDesc = $priceLine . ' incl VAT' . ($product['short_desc'] ? ' · ' . $product['short_desc'] : '');
 
 include BASE_PATH . '/includes/header.php';
 ?>
@@ -52,6 +67,9 @@ include BASE_PATH . '/includes/header.php';
         <h1 class="pd-title"><?= e($product['name']) ?></h1>
         <div class="pd-sku">SKU: <?= e($product['sku']) ?><?php if ($product['barcode']): ?> · EAN: <?= e($product['barcode']) ?><?php endif; ?></div>
 
+        <?php if ($onPromo): ?>
+            <div class="pd-promo">🏷️ On promotion<?php if (!empty($product['promo_ends'])): ?> · ends <?= e(date('j M Y', strtotime((string)$product['promo_ends']))) ?><?php endif; ?></div>
+        <?php endif; ?>
         <div>
             <span class="pd-price"><?= money((float)$product['price']) ?></span>
             <?php if ($save > 0): ?>

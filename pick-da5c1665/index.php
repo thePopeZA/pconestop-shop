@@ -43,6 +43,9 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
     .chips { display:flex; gap:7px; overflow-x:auto; padding:9px 14px 2px; -webkit-overflow-scrolling:touch; }
     .chips button { white-space:nowrap; padding:6px 12px; border-radius:999px; border:1px solid var(--line); background:var(--panel); color:#cfe; font-size:.78rem; cursor:pointer; }
     .chips button.on { background:var(--green); color:#fff; border-color:var(--green); }
+    .promo-toggle { width:100%; margin-top:8px; padding:9px; border-radius:8px; border:1px solid #d97a2a; background:var(--panel); color:#f2b47a; font-size:.85rem; font-weight:700; cursor:pointer; }
+    .promo-toggle.on { background:#e07b28; color:#fff; border-color:#e07b28; }
+    .row .tag-promo { display:inline-block; background:#e07b28; color:#fff; font-size:.66rem; font-weight:700; padding:1px 6px; border-radius:5px; margin-left:6px; vertical-align:middle; }
     .list { padding:8px 12px; }
     .row { display:flex; gap:12px; align-items:center; background:var(--panel); border:2px solid transparent; border-radius:12px; padding:10px; margin-bottom:10px; cursor:pointer; }
     .row.sel { border-color:var(--amber); }
@@ -84,6 +87,7 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
         <button data-sort="pct">Biggest %</button>
         <button data-sort="price">Price</button>
     </div>
+    <button type="button" id="promoToggle" class="promo-toggle">🏷️ On promo only <span id="promoCount"></span></button>
 </div>
 <div class="chips" id="chips"></div>
 <div class="list" id="list"></div>
@@ -121,7 +125,12 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
 
     var bySlug = {}; DEALS.forEach(function (d) { bySlug[d.slug] = d; });
     var selected = [];            // ordered slugs
-    var sort = 'save', cat = '', q = '';
+    var sort = 'save', cat = '', q = '', promoOnly = false;
+
+    // Show how many live Syntech promos are in the pool on the toggle.
+    var promoToggle = document.getElementById('promoToggle');
+    var promoTotal = DEALS.filter(function (d) { return d.on_promo; }).length;
+    document.getElementById('promoCount').textContent = '(' + promoTotal + ')';
 
     function zar(n) { return PC.zar(n); }
     function zarWhole(n) { return PC.zarWhole(n); }
@@ -133,6 +142,7 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
 
     function filtered() {
         var out = DEALS.slice();
+        if (promoOnly) out = out.filter(function (d) { return d.on_promo; });
         if (cat) out = out.filter(function (d) { return d.category === cat; });
         if (q) {
             var t = q.toLowerCase();
@@ -155,7 +165,7 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
                 '<img loading="lazy" src="' + esc(d.image) + '" alt="">' +
                 '<div class="info">' +
                     '<div class="brand">' + esc(d.brand || '') + ' · ' + esc(d.category) + '</div>' +
-                    '<div class="name">' + esc(d.name) + '</div>' +
+                    '<div class="name">' + esc(d.name) + (d.on_promo ? '<span class="tag-promo">🏷️ PROMO</span>' : '') + '</div>' +
                     '<div class="meta"><span class="save">save ' + zarWhole(d.save_amount) + '</span> · ' +
                         d.save_pct + '% · now ' + zar(d.price_now) + ' <span style="text-decoration:line-through">RRP ' + zar(d.price_was) + '</span> · ' +
                         '<span class="' + (d.stock === 'Low stock' ? 'low' : '') + '">' + esc(d.stock) + '</span></div>' +
@@ -202,6 +212,11 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
         render();
     });
     searchEl.addEventListener('input', function () { q = searchEl.value.trim(); render(); });
+    promoToggle.addEventListener('click', function () {
+        promoOnly = !promoOnly;
+        promoToggle.classList.toggle('on', promoOnly);
+        render();
+    });
 
     // ---- Generate & publish ----
     var overlay = document.getElementById('overlay');

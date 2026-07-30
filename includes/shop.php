@@ -175,6 +175,13 @@ function query_products(array $opts = []): array
     if (!empty($opts['in_stock_only'])) {
         $where[] = 'p.stock_qty > 0';
     }
+    if (!empty($opts['promo_only'])) {
+        // Products inside an active Syntech promo window (date-gated, TZ-safe param).
+        $today = date('Y-m-d');
+        $where[] = 'p.promo_price > 0 AND (p.promo_starts IS NULL OR p.promo_starts <= ?) AND (p.promo_ends IS NULL OR p.promo_ends >= ?)';
+        $params[] = $today;
+        $params[] = $today;
+    }
     $search = trim((string)($opts['search'] ?? ''));
     if ($search !== '') {
         // Use LIKE for reliability across short terms; fall back-friendly.
@@ -263,14 +270,59 @@ function homepage_products(int $limit = 10): array
 /** On-promotion products (our price below RRP). */
 function promo_products(int $limit = 10): array
 {
-    $stmt = db()->prepare(
-        'SELECT * FROM products WHERE active = 1 AND stock_qty > 0
-         AND rrp IS NOT NULL AND rrp > price
-         ORDER BY (rrp - price) DESC LIMIT ?'
-    );
-    $stmt->bindValue(1, $limit, PDO::PARAM_INT);
-    $stmt->execute();
-    return $stmt->fetchAll();
+    // "Hot deals" = biggest RRP gap, EXCLUDING items in an active Syntech promo
+    // window (those have their own "On promotion" section, so no double-listing).
+    $today = date('Y-m-d');
+    try {
+        $stmt = db()->prepare(
+            'SELECT * FROM products WHERE active = 1 AND stock_qty > 0
+               AND rrp IS NOT NULL AND rrp > price
+               AND NOT (COALESCE(promo_price, 0) > 0 AND (promo_starts IS NULL OR promo_starts <= ?) AND (promo_ends IS NULL OR promo_ends >= ?))
+             ORDER BY (rrp - price) DESC LIMIT ?'
+        );
+        $stmt->bindValue(1, $today);
+        $stmt->bindValue(2, $today);
+        $stmt->bindValue(3, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    } catch (Throwable $e) {
+        // promo columns not migrated yet — fall back to the plain deal query.
+        $stmt = db()->prepare(
+            'SELECT * FROM products WHERE active = 1 AND stock_qty > 0
+             AND rrp IS NOT NULL AND rrp > price
+             ORDER BY (rrp - price) DESC LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+}
+
+/**
+ * Products currently inside a Syntech promo window — real supplier deals on
+ * consumer-ready stock. Ordered by biggest saving, then soonest to end.
+ * Fails soft (returns []) if the promo columns aren't migrated yet.
+ */
+function promo_deals(int $limit = 8): array
+{
+    try {
+        $today = date('Y-m-d');
+        $stmt = db()->prepare(
+            'SELECT * FROM products
+             WHERE active = 1 AND stock_qty > 0 AND promo_price > 0
+               AND (promo_starts IS NULL OR promo_starts <= ?)
+               AND (promo_ends   IS NULL OR promo_ends   >= ?)
+             ORDER BY (rrp - price) DESC, promo_ends ASC
+             LIMIT ?'
+        );
+        $stmt->bindValue(1, $today);
+        $stmt->bindValue(2, $today);
+        $stmt->bindValue(3, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    } catch (Throwable $e) {
+        return [];
+    }
 }
 
 /** Build product page URL. */
@@ -290,8 +342,10 @@ function render_card(array $p): string
     $img = product_image($p['image_url']);
     $hasStock = (int)$p['stock_qty'] > 0;
     $save = ($p['rrp'] && $p['rrp'] > $p['price']) ? ((float)$p['rrp'] - (float)$p['price']) : 0;
+    $onPromo = product_on_promo($p);
     ob_start(); ?>
-    <div class="card">
+    <div class="card<?= $onPromo ? ' card-promo' : '' ?>">
+        <?php if ($onPromo): ?><span class="badge-onpromo">🏷️ On Promo</span><?php endif; ?>
         <?php if ($save > 0): ?><span class="badge-promo">SAVE <?= money($save) ?></span><?php endif; ?>
         <a class="thumb" href="<?= e(product_url($p)) ?>">
             <img src="<?= e($img) ?>" alt="<?= e($p['name']) ?>" loading="lazy"

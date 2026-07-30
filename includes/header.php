@@ -14,6 +14,18 @@ $activeCat = $activeCat ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($fullTitle) ?></title>
     <meta name="description" content="<?= e($metaDesc) ?>">
+    <!-- Open Graph / Twitter — makes shared links unfurl into a preview card (WhatsApp, etc.) -->
+    <meta property="og:type" content="<?= e($ogType ?? 'website') ?>">
+    <meta property="og:title" content="<?= e($ogTitle ?? $fullTitle) ?>">
+    <meta property="og:description" content="<?= e($ogDesc ?? $metaDesc) ?>">
+    <meta property="og:site_name" content="<?= e(APP_NAME) ?>">
+    <?php if (!empty($ogUrl)): ?><meta property="og:url" content="<?= e($ogUrl) ?>"><?php endif; ?>
+    <?php if (!empty($ogImage)): ?>
+    <meta property="og:image" content="<?= e($ogImage) ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <?php else: ?>
+    <meta name="twitter:card" content="summary">
+    <?php endif; ?>
     <link rel="preconnect" href="https://www.syntech.co.za">
     <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
     <link rel="icon" href="<?= e(asset('img/favicon.png')) ?>" type="image/png">

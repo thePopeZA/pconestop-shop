@@ -42,9 +42,11 @@ function create_order(array $customer, array $items, array $totals): array
         );
         foreach ($items as $it) {
             $p = $it['product'];
+            // Snapshot the EFFECTIVE dealer cost (promo cost while a promo runs) so the
+            // supplier PO and commission both bill/report the true cost for this sale.
             $itemStmt->execute([
                 $orderId, (int)$p['id'], $p['sku'], $p['name'],
-                (float)$p['price'], (float)$p['cost_price'], (int)$it['qty'], (float)$it['line_total'],
+                (float)$p['price'], effective_cost($p), (int)$it['qty'], (float)$it['line_total'],
             ]);
         }
         $pdo->commit();
