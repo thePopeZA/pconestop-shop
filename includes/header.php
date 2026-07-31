@@ -12,6 +12,7 @@ $activeCat = $activeCat ?? '';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification" content="l5T1HCZhfUz8-dOBDzx34kpuwuk1z3KuCILr8XpRqlo">
     <title><?= e($fullTitle) ?></title>
     <meta name="description" content="<?= e($metaDesc) ?>">
     <!-- Open Graph / Twitter — makes shared links unfurl into a preview card (WhatsApp, etc.) -->
