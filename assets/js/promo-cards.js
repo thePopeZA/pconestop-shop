@@ -58,7 +58,19 @@ window.PromoCards = (function () {
 
     /** Filename for a card at a given 0-based index: pcos-status-01-<slug>.png */
     function filenameFor(index, item) {
-        return 'pcos-status-' + String(index + 1).padStart(2, '0') + '-' + item.slug + '.png';
+        // Sanitise the slug for use as a filename: the publish validator only
+        // allows [a-z0-9-], but product slugs can carry SKU dots/odd chars
+        // (e.g. "...-w-2.8"). Any non-alphanumeric run becomes a hyphen; cap the
+        // length. The filename is just an identifier — captions/links come from
+        // the frozen caption, so this never affects what the customer sees.
+        var slug = String(item.slug || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 80)
+            .replace(/-+$/g, '');
+        if (!slug) { slug = 'item'; }
+        return 'pcos-status-' + String(index + 1).padStart(2, '0') + '-' + slug + '.png';
     }
 
     /** Render a card element to a 1080x1920 canvas via an offscreen clone in `stage`. */

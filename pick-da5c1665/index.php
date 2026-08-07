@@ -105,7 +105,7 @@ sort($cats, SORT_NATURAL | SORT_FLAG_CASE);
 <div id="stage"></div>
 
 <script src="/assets/js/lib/html2canvas.min.js"></script>
-<script src="/assets/js/promo-cards.js"></script>
+<script src="/assets/js/promo-cards.js?v=2"></script>
 <script>
 (function () {
     'use strict';
