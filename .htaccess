@@ -8,6 +8,8 @@
 </FilesMatch>
 
 RedirectMatch 403 ^/?(config|includes|lib|database|storage)(/.*)?$
+# Block the Git metadata dir from the web (cPanel Git clones .git into the docroot).
+RedirectMatch 403 ^/?\.git(/.*)?$
 # Cron scripts are CLI-only and stay web-blocked — EXCEPT the daily promo mailer,
 # which has a key-protected manual web trigger for testing. (fetch_feed.php and
 # commission_report.php also self-guard with a PHP_SAPI==='cli' check.)
