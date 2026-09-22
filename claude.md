@@ -33,7 +33,7 @@ DEPLOY.md                            → deployment steps for cPanel
 - **Supplier PO email:** on payment, `send_supplier_po()` mails the order to the Syntech rep (settings `syntech_rep_name`/`syntech_rep_email`) with dealer prices only + red do-not-invoice-customer banner; copy to `ORDER_NOTIFY_EMAIL`. Customer sell prices must NEVER appear in supplier emails.
 - **Email sending is gated** by `MAIL_ENABLED` in .env — default OFF until owner says go. Never remove the guard.
 - **Secrets live only in gitignored `.env`** (Yoco keys, DB creds, Syntech feed key). Never commit them; `.env.example` documents the shape.
-- Yoco is on TEST keys until go-live.
+- Yoco is **LIVE** on prod (`pk_live_`/`sk_live_` keys, webhook secret `whsec_` set). Local/dev may use test keys. Never assume test — check the `.env` key prefix.
 
 ## Coding conventions
 - Follow the existing pattern: procedural pages that `require config/config.php`, shared logic in `includes/`, prepared PDO statements everywhere.
